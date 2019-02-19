@@ -189,3 +189,4 @@ void sheet_refreshmap(SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0);
 #define EFLAGS_AC_BIT			0x00040000
 #define CR0_CACHE_DISABLE		0x60000000
 void make_window8(unsigned char *buf, int xsize, int ysize, char *title);
+void putfont8_asc_sht(SHEET *sht, int x, int y, int c, int b, char *s, int l);
