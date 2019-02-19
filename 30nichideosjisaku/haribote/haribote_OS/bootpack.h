@@ -38,6 +38,7 @@ void io_store_eflags(int eflags);
 void write_mem8(int addr, int data);
 void load_gdtr(int limit, int addr);
 void load_idtr(int limit, int addr);
+void asm_inthandler20(void);
 void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler2c(void);
@@ -185,6 +186,31 @@ void sheet_slide(SHEET *sht, int vx0, int vy0);
 void sheet_free(SHEET *sht);
 void sheet_refreshsub(SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0, int h1);
 void sheet_refreshmap(SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0);
+
+/* timer.c */
+#define PIT_CTRL				0x0043
+#define PIT_CNT0				0x0040
+#define MAX_TIMER				500
+#define TIMER_FLAGS_ALLOC		1 /* 確保 */
+#define TIMER_FLAGS_USING		2 /* タイマ作動中 */
+typedef struct{
+	unsigned int timeout, flags;
+	FIFO8 *fifo;
+	unsigned char data;
+}TIMER;
+
+typedef struct{
+	unsigned int count, next, using;
+	TIMER *timers[MAX_TIMER];
+	TIMER timers0[MAX_TIMER]; 
+}TIMERCTL;
+void init_pit(void);
+TIMER *timer_alloc(void);
+void timer_free(TIMER *timer);
+void timer_init(TIMER *timer, FIFO8 *fifo, unsigned char data);
+void timer_settime(TIMER *timer, unsigned int timeout);
+void inthandler20(int *esp);
+
 /* bootpack.c */
 #define EFLAGS_AC_BIT			0x00040000
 #define CR0_CACHE_DISABLE		0x60000000

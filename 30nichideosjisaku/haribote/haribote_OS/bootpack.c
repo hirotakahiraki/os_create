@@ -2,19 +2,21 @@
 #include "bootpack.h"
 
 extern FIFO8 keyfifo, mousefifo;
+extern TIMERCTL timerctl;
+FIFO8 timerfifo;
 BOOTINFO *binfo= (BOOTINFO *) ADR_BOOTINFO;
 // extern MOUSE_DEC mdec; externしてはいけない(未解決)
 
 void HariMain(void)
 {
-//	extern char hankaku[4096];
-	char s[40], keybuf[32], mousebuf[128];
+	char s[40], keybuf[32], mousebuf[128], timerbuf[8];
 	int mx, my, i;
 	unsigned int memtotal, count =0;
 	MOUSE_DEC mdec;
 	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
 	SHTCTL *shtctl;
 	SHEET *sht_back, *sht_mouse, *sht_win;
+	TIMER *timer, *timer2, *timer3;
 	unsigned char *buf_back, buf_mouse[256], *buf_win;
 
 	init_gdtidt();
@@ -23,8 +25,20 @@ void HariMain(void)
 
 	fifo8_init(&keyfifo, 32, keybuf);
 	fifo8_init(&mousefifo, 128, mousebuf);
-	io_out8(PIC0_IMR, 0xf9);
+	init_pit();
+	io_out8(PIC0_IMR, 0xf8); /* PIT, PIC1, キーボードを初期化 */
 	io_out8(PIC1_IMR, 0xef);
+
+	fifo8_init(&timerfifo, 8, timerbuf);
+	timer = timer_alloc();
+	timer_init(timer, &timerfifo, 10);
+	timer_settime(timer,1000);
+	timer2 = timer_alloc();
+	timer_init(timer2, &timerfifo, 3);
+	timer_settime(timer2,300);
+	timer3 = timer_alloc();
+	timer_init(timer3, &timerfifo, 1);
+	timer_settime(timer3, 50);
 
 	init_keyboard();
 	enable_mouse(&mdec);
@@ -32,7 +46,7 @@ void HariMain(void)
 	memman_init(memman);
 	memman_free(memman, 0x00001000, 0x0009e000); // 0x00001000 - 0x0009efff 
 	memman_free(memman, 0x00400000, memtotal - 0x00400000);
-
+	
 	init_palette();	
 	shtctl = shtctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);
 	sht_back = sheet_alloc(shtctl);
@@ -66,12 +80,12 @@ void HariMain(void)
 */	sheet_refresh(sht_back, 0, 0, binfo->scrnx, 48);
 
 	for (;;) {
-		count +=1;
-		sprintf(s, "%010d", count);
-		putfont8_asc_sht(sht_win, 40, 28, COL8_000000, COL8_C6C6C6, s, 10);
+		//count +=1;
+		sprintf(s, "%010d", timerctl.count);
+		putfont8_asc_sht(sht_win, 40, 28,COL8_000000, COL8_C6C6C6, s, 10);
 		
 		io_cli();
-		if(fifo8_status(&keyfifo) + fifo8_status(&mousefifo)== 0){
+		if(fifo8_status(&keyfifo) + fifo8_status(&mousefifo) + fifo8_status(&timerfifo) == 0){
 			io_sti();
 		} else
 		{	
@@ -115,7 +129,32 @@ void HariMain(void)
 					putfont8_asc_sht(sht_back, 0, 0, COL8_FFFFFF, COL8_008484, s, 10);
 					sheet_slide(sht_mouse, mx, my);
 				}
+			}else if(fifo8_status(&timerfifo) !=0){
+				i = fifo8_get(&timerfifo);
+				io_sti();
+				switch (i)
+				{
+					case 3:
+						putfont8_asc_sht(sht_back, 0, 80, COL8_FFFFFF, COL8_008484, "3[sec]", 6);
+						timer_init(timer2, &timerfifo, 0);
+						//count =0;
+						break;					
+					case 10:
+						putfont8_asc_sht(sht_back, 0, 64, COL8_FFFFFF, COL8_008484, "10[sec]", 7);		
+						break;
+				}
+		
+				if(i != 0){
+					timer_init(timer3, &timerfifo, 0); // 次は0 
+					boxfill8(buf_back, binfo->scrnx, COL8_FFFFFF, 8, 96, 15, 111);
+				}else{
+					timer_init(timer3, &timerfifo, 1); // 次は1 
+					boxfill8(buf_back, binfo->scrnx, COL8_008484, 8, 96, 15, 111);
 			}
+				timer_settime(timer3, 50);
+				sheet_refresh(sht_back, 8, 96, 16, 112);
+			}
+			
 		}
 	}
 }
