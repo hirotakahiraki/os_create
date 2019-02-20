@@ -12,7 +12,7 @@ void HariMain(void)
 {
 	int fifobuf[128];	
 	char s[40], keybuf[32], mousebuf[128], timerbuf[8];
-	int mx, my, i;
+	int mx, my, i, count10;
 	unsigned int memtotal, count =0;
 	MOUSE_DEC mdec;
 	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
@@ -154,8 +154,12 @@ void HariMain(void)
 						break;					
 					case 10:
 						putfont8_asc_sht(sht_back, 0, 64, COL8_FFFFFF, COL8_008484, "10[sec]", 7);		
+						count10 = count;
 						sprintf(s, "%010d", count);
 						putfont8_asc_sht(sht_win, 40, 28,COL8_000000, COL8_C6C6C6, s, 10);	
+						sprintf(s, "%010d", count10);
+						putfont8_asc_sht(sht_back, 60, 130, COL8_000000, COL8_008484, s, 10);	
+						
 						break;
 				}	
 		}

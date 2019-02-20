@@ -204,6 +204,7 @@ void sheet_refreshmap(SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0);
 #define TIMER_FLAGS_ALLOC		1 /* 確保 */
 #define TIMER_FLAGS_USING		2 /* タイマ作動中 */
 typedef struct{
+	struct TIMER *next;
 	unsigned int timeout, flags;
 	FIFO32 *fifo;
 	int data;
@@ -211,7 +212,7 @@ typedef struct{
 
 typedef struct{
 	unsigned int count, next, using;
-	TIMER *timers[MAX_TIMER];
+	TIMER *t0;
 	TIMER timers0[MAX_TIMER]; 
 }TIMERCTL;
 void init_pit(void);

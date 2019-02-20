@@ -74,7 +74,6 @@ run :
 	$(MAKE) -C ../../z_tools/qemu
 
 clean :
-	mv hankaku.bin hankakub
 	-$(DEL) *.bin
 	-$(DEL) *.lst
 	-$(DEL) *.gas
