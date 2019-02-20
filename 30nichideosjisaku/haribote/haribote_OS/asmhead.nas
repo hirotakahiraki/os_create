@@ -17,13 +17,19 @@ VRAM	EQU		0x0ff8			; グラフィックバッファの開始番地
 
 ; 画面モードを設定
 
-		MOV		AL,0x13			; VGAグラフィックス ,320*200*8bitカラー
-		MOV		AH,0x00
+		;MOV		AL,0x13			; VGAグラフィックス ,320*200*8bitカラー
+		;MOV		AH,0x00
+		;0x101  640* 480  
+		;0x103  800* 600  
+		;0x105 1024* 768  
+		;0x107 1280*1024 
+		MOV		BX,0x4103 
+		MOV		AX,0x4f02
 		INT		0x10
 		MOV		BYTE [VMODE],8	; 画面モードをメモする(C言語が参照する)
-		MOV		WORD [SCRNX],320
-		MOV		WORD [SCRNY],200
-		MOV		DWORD [VRAM],0x000a0000
+		MOV		WORD [SCRNX],800 ;320
+		MOV		WORD [SCRNY],600 ;200
+		MOV		DWORD [VRAM],0xfd000000	;0x000a0000
 
 ; キーボードのLED状態をBIOSに教えてもらう
 
