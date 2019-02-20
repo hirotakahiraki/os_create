@@ -93,6 +93,13 @@ void HariMain(void)
 				// キーボード
 				sprintf(s, "%02X", i-256);
 				putfont8_asc_sht(sht_back, 0, 16, COL8_FFFFFF, COL8_008484, s, 2);
+				if(i< 256 + 0x54){
+					if(keytable[i-256]!=0){
+						s[0] = keytable[i-256];
+						s[1] = 0;
+						putfont8_asc_sht(sht_win, 140, 28, COL8_000000, COL8_C6C6C6, s, 1);
+					}
+				}
 
 			}else if(512 <= i && i <= 767){
 				// マウス
@@ -146,17 +153,17 @@ void HariMain(void)
 						break;
 					case 3:
 						putfont8_asc_sht(sht_back, 0, 80, COL8_FFFFFF, COL8_008484, "3[sec]", 6);
-						timer_init(timer2, &fifo, 0);
+				/*		timer_init(timer2, &fifo, 0);
 						count =0;
-						break;					
+				*/		break;					
 					case 10:
 						putfont8_asc_sht(sht_back, 0, 64, COL8_FFFFFF, COL8_008484, "10[sec]", 7);		
-						count10 = count;
+						/*count10 = count;
 						sprintf(s, "%010d", count);
 						putfont8_asc_sht(sht_win, 40, 28,COL8_000000, COL8_C6C6C6, s, 10);	
 						sprintf(s, "%010d", count10);
 						putfont8_asc_sht(sht_back, 60, 130, COL8_000000, COL8_008484, s, 10);	
-						
+						*/
 						break;
 				}	
 		}

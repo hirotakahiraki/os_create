@@ -228,3 +228,11 @@ void inthandler20(int *esp);
 void make_window8(unsigned char *buf, int xsize, int ysize, char *title);
 void putfont8_asc_sht(SHEET *sht, int x, int y, int c, int b, char *s, int l);
 void set490(FIFO32 *fifo, int mode);
+static char keytable[0x54]={
+	 0,   0,  '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0, 0,  //16
+	'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '[',  0 ,  0 , //14
+	'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', ':',  0,   0 , ']', //14
+	'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/',  0 , //11
+	'*',  0 , ' ',  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , 0, 0,//16 
+	'7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.' //13
+	};
