@@ -1,31 +1,31 @@
      1 00000000                                 ; haribote-os boot asm
      2 00000000                                 ; TAB=4
      3 00000000                                 
-     4  = 00280000                              BOTPAK	EQU		0x00280000		; bootpack�̃��[�h��
-     5  = 00100000                              DSKCAC	EQU		0x00100000		; �f�B�X�N�L���b�V���̏ꏊ
-     6  = 00008000                              DSKCAC0	EQU		0x00008000		; �f�B�X�N�L���b�V���̏ꏊ�i���A�����[�h�j
+     4  = 00280000                              BOTPAK	EQU		0x00280000		; bootpackのロード先
+     5  = 00100000                              DSKCAC	EQU		0x00100000		; ディスクキャッシュの場所
+     6  = 00008000                              DSKCAC0	EQU		0x00008000		; ディスクキャッシュの場所(リアルモード)
      7 00000000                                 
-     8 00000000                                 ; BOOT_INFO�֌W
-     9  = 00000FF0                              CYLS	EQU		0x0ff0			; �u�[�g�Z�N�^���ݒ肷��
+     8 00000000                                 ; BOOT_INFO関係
+     9  = 00000FF0                              CYLS	EQU		0x0ff0			; ブートセクタが設定する
     10  = 00000FF1                              LEDS	EQU		0x0ff1
-    11  = 00000FF2                              VMODE	EQU		0x0ff2			; �F���Ɋւ�����B���r�b�g�J���[���H
-    12  = 00000FF4                              SCRNX	EQU		0x0ff4			; �𑜓x��X
-    13  = 00000FF6                              SCRNY	EQU		0x0ff6			; �𑜓x��Y
-    14  = 00000FF8                              VRAM	EQU		0x0ff8			; �O���t�B�b�N�o�b�t�@�̊J�n�Ԓn
+    11  = 00000FF2                              VMODE	EQU		0x0ff2			; 色数に関する情報
+    12  = 00000FF4                              SCRNX	EQU		0x0ff4			; 解像度のX
+    13  = 00000FF6                              SCRNY	EQU		0x0ff6			; 解像度のY
+    14  = 00000FF8                              VRAM	EQU		0x0ff8			; グラフィックバッファの開始番地
     15 00000000                                 
-    16                                          		ORG		0xc200			; ���̃v���O�������ǂ��ɓǂݍ��܂��̂�
+    16                                          		ORG		0xc200			; このプログラムがどこに読まれるのか
     17 0000C200                                 
-    18 0000C200                                 ; ��ʃ��[�h��ݒ�
+    18 0000C200                                 ; 画面モードを設定
     19 0000C200                                 
-    20 0000C200 B0 13                           		MOV		AL,0x13			; VGA�O���t�B�b�N�X�A320x200x8bit�J���[
+    20 0000C200 B0 13                           		MOV		AL,0x13			; VGAグラフィックス ,320*200*8bitカラー
     21 0000C202 B4 00                           		MOV		AH,0x00
     22 0000C204 CD 10                           		INT		0x10
-    23 0000C206 C6 06 0FF2 08                   		MOV		BYTE [VMODE],8	; ��ʃ��[�h����������iC���ꂪ�Q�Ƃ���j
+    23 0000C206 C6 06 0FF2 08                   		MOV		BYTE [VMODE],8	; 画面モードをメモする(C言語が参照する)
     24 0000C20B C7 06 0FF4 0140                 		MOV		WORD [SCRNX],320
     25 0000C211 C7 06 0FF6 00C8                 		MOV		WORD [SCRNY],200
     26 0000C217 66 C7 06 0FF8 000A0000          		MOV		DWORD [VRAM],0x000a0000
     27 0000C220                                 
-    28 0000C220                                 ; �L�[�{�[�h��LED��Ԃ�BIOS�ɋ����Ă��炤
+    28 0000C220                                 ; キーボードのLED状態をBIOSに教えてもらう
     29 0000C220                                 
     30 0000C220 B4 02                           		MOV		AH,0x02
     31 0000C222 CD 16                           		INT		0x16 			; keyboard BIOS
@@ -131,7 +131,7 @@
    131 0000C300 66 83 E9 01                     		SUB		ECX,1
    132 0000C304 75 EA                           		JNZ		memcpy			; 引き算した結果が0でなければmemcpyへ
    133 0000C306 C3                              		RET
-   134 0000C307                                 ; memcpy�̓A�h���X�T�C�Y�v���t�B�N�X�����Y��Ȃ���΁A�X�g�����O���߂ł�������
+   134 0000C307                                 ; memcpyはアドレスサイズプリフィクスを入れ忘れなければ、ストリング命令でも書ける。
    135 0000C307                                 
    136 0000C307 00 00 00 00 00 00 00 00 00      		ALIGNB	16
    137 0000C310                                 GDT0:

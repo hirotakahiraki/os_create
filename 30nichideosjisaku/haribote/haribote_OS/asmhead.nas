@@ -1,31 +1,31 @@
 ; haribote-os boot asm
 ; TAB=4
 
-BOTPAK	EQU		0x00280000		; bootpack�̃��[�h��
-DSKCAC	EQU		0x00100000		; �f�B�X�N�L���b�V���̏ꏊ
-DSKCAC0	EQU		0x00008000		; �f�B�X�N�L���b�V���̏ꏊ�i���A�����[�h�j
+BOTPAK	EQU		0x00280000		; bootpackのロード先
+DSKCAC	EQU		0x00100000		; ディスクキャッシュの場所
+DSKCAC0	EQU		0x00008000		; ディスクキャッシュの場所(リアルモード)
 
-; BOOT_INFO�֌W
-CYLS	EQU		0x0ff0			; �u�[�g�Z�N�^���ݒ肷��
+; BOOT_INFO関係
+CYLS	EQU		0x0ff0			; ブートセクタが設定する
 LEDS	EQU		0x0ff1
-VMODE	EQU		0x0ff2			; �F���Ɋւ�����B���r�b�g�J���[���H
-SCRNX	EQU		0x0ff4			; �𑜓x��X
-SCRNY	EQU		0x0ff6			; �𑜓x��Y
-VRAM	EQU		0x0ff8			; �O���t�B�b�N�o�b�t�@�̊J�n�Ԓn
+VMODE	EQU		0x0ff2			; 色数に関する情報
+SCRNX	EQU		0x0ff4			; 解像度のX
+SCRNY	EQU		0x0ff6			; 解像度のY
+VRAM	EQU		0x0ff8			; グラフィックバッファの開始番地
 
-		ORG		0xc200			; ���̃v���O�������ǂ��ɓǂݍ��܂��̂�
+		ORG		0xc200			; このプログラムがどこに読まれるのか
 
-; ��ʃ��[�h��ݒ�
+; 画面モードを設定
 
-		MOV		AL,0x13			; VGA�O���t�B�b�N�X�A320x200x8bit�J���[
+		MOV		AL,0x13			; VGAグラフィックス ,320*200*8bitカラー
 		MOV		AH,0x00
 		INT		0x10
-		MOV		BYTE [VMODE],8	; ��ʃ��[�h����������iC���ꂪ�Q�Ƃ���j
+		MOV		BYTE [VMODE],8	; 画面モードをメモする(C言語が参照する)
 		MOV		WORD [SCRNX],320
 		MOV		WORD [SCRNY],200
 		MOV		DWORD [VRAM],0x000a0000
 
-; �L�[�{�[�h��LED��Ԃ�BIOS�ɋ����Ă��炤
+; キーボードのLED状態をBIOSに教えてもらう
 
 		MOV		AH,0x02
 		INT		0x16 			; keyboard BIOS
@@ -131,7 +131,7 @@ memcpy:
 		SUB		ECX,1
 		JNZ		memcpy			; 引き算した結果が0でなければmemcpyへ
 		RET
-; memcpy�̓A�h���X�T�C�Y�v���t�B�N�X�����Y��Ȃ���΁A�X�g�����O���߂ł�������
+; memcpyはアドレスサイズプリフィクスを入れ忘れなければ、ストリング命令でも書ける。
 
 		ALIGNB	16
 GDT0:
