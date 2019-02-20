@@ -31,8 +31,8 @@ void timer_free(TIMER *timer){
     return;
 }
 
-void timer_init(TIMER *timer, FIFO8 *fifo, unsigned char data){
-    timer->fifo = (FIFO8 *)fifo;
+void timer_init(TIMER *timer, FIFO32 *fifo, int data){
+    timer->fifo = fifo;
     timer->data = data;
     return;
 }
@@ -74,7 +74,7 @@ void inthandler20(int *esp){
         }
         // タイムアウト
         timerctl.timers[i]->flags = TIMER_FLAGS_ALLOC;
-        fifo8_put((FIFO8 *)timerctl.timers[i]->fifo, timerctl.timers[i]->data);
+        fifo32_put(timerctl.timers[i]->fifo, timerctl.timers[i]->data);
     }      
     // i個のタイマがタイムアウトしたので残りをずらす
     timerctl.using -= i;

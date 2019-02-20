@@ -7,6 +7,7 @@ CC1      = $(TOOLPATH)gocc1 -I$(INCPATH) -Os -Wall -quiet
 GAS2NASK = $(TOOLPATH)gas2nask -a
 OBJ2BIM  = $(TOOLPATH)obj2bim
 MAKEFONT = $(TOOLPATH)makefont
+BIN2OBJ  = $(TOOLPATH)bin2obj
 BIM2HRB  = $(TOOLPATH)bim2hrb
 RULEFILE = $(TOOLPATH)haribote/haribote.rul
 EDIMG    = $(TOOLPATH)edimg
@@ -75,12 +76,9 @@ run :
 clean :
 	mv hankaku.bin hankakub
 	-$(DEL) *.bin
-	mv hankakub hankaku.bin
 	-$(DEL) *.lst
 	-$(DEL) *.gas
-	mv hankaku.obj hankakuo
 	-$(DEL) *.obj
-	mv hankakuo hankaku.obj
 	-$(DEL) bootpack.nas
 	-$(DEL) graphic.nas
 	-$(DEL) dsctbl.nas
@@ -96,3 +94,22 @@ install :
 src_only :
 	$(MAKE) clean
 	-$(DEL) haribote.img
+
+
+OSNAME   = HariboteOS
+IMGNAME  = haribote.img
+VBOX     = VBoxManage
+
+# VirtualBox
+
+vdel:	
+	$(VBOX) unregistervm $(OSNAME) --delete
+	$(MAKE) src_only
+
+vrun:	
+	$(MAKE) haribote.img
+	$(VBOX) createvm --name $(OSNAME) --ostype Other --register
+	$(VBOX) modifyvm $(OSNAME) --memory 32
+	$(VBOX) storagectl $(OSNAME) --name Floppy --add floppy
+	$(VBOX) storageattach $(OSNAME) --storagectl Floppy --device 0 --medium $(IMGNAME)
+	$(VBOX) startvm $(OSNAME)

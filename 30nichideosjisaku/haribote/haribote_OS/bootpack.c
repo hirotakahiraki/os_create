@@ -1,14 +1,16 @@
 #include <stdio.h>
 #include "bootpack.h"
 
-extern FIFO8 keyfifo, mousefifo;
+FIFO32 fifo;
+//extern FIFO8 keyfifo, mousefifo;
 extern TIMERCTL timerctl;
-FIFO8 timerfifo;
+//FIFO8 timerfifo;
 BOOTINFO *binfo= (BOOTINFO *) ADR_BOOTINFO;
 // extern MOUSE_DEC mdec; externしてはいけない(未解決)
 
 void HariMain(void)
 {
+	int fifobuf[128];	
 	char s[40], keybuf[32], mousebuf[128], timerbuf[8];
 	int mx, my, i;
 	unsigned int memtotal, count =0;
@@ -23,25 +25,25 @@ void HariMain(void)
 	init_pic();
 	io_sti();
 
-	fifo8_init(&keyfifo, 32, keybuf);
-	fifo8_init(&mousefifo, 128, mousebuf);
+	fifo32_init(&fifo, 128, fifobuf);
+	//fifo8_init(&mousefifo, 128, mousebuf);
 	init_pit();
 	io_out8(PIC0_IMR, 0xf8); /* PIT, PIC1, キーボードを初期化 */
 	io_out8(PIC1_IMR, 0xef);
 
-	fifo8_init(&timerfifo, 8, timerbuf);
+	//fifo8_init(&timerfifo, 8, timerbuf);
 	timer = timer_alloc();
-	timer_init(timer, &timerfifo, 10);
+	timer_init(timer, &fifo, 10);
 	timer_settime(timer,1000);
 	timer2 = timer_alloc();
-	timer_init(timer2, &timerfifo, 3);
+	timer_init(timer2, &fifo, 3);
 	timer_settime(timer2,300);
 	timer3 = timer_alloc();
-	timer_init(timer3, &timerfifo, 1);
+	timer_init(timer3, &fifo, 1);
 	timer_settime(timer3, 50);
 
-	init_keyboard();
-	enable_mouse(&mdec);
+	init_keyboard(&fifo, 256);
+	enable_mouse(&fifo, 512, &mdec);
 	memtotal = memtest(0x00400000,0xbfffffff);
 	memman_init(memman);
 	memman_free(memman, 0x00001000, 0x0009e000); // 0x00001000 - 0x0009efff 
@@ -80,23 +82,23 @@ void HariMain(void)
 */	sheet_refresh(sht_back, 0, 0, binfo->scrnx, 48);
 
 	for (;;) {
-		//count +=1;
-		sprintf(s, "%010d", timerctl.count);
+		count +=1;
+		sprintf(s, "%010d",  count);
 		putfont8_asc_sht(sht_win, 40, 28,COL8_000000, COL8_C6C6C6, s, 10);
-		
 		io_cli();
-		if(fifo8_status(&keyfifo) + fifo8_status(&mousefifo) + fifo8_status(&timerfifo) == 0){
+		if(fifo32_status(&fifo) == 0){
 			io_sti();
 		} else
 		{	
-			if(fifo8_status(&keyfifo) !=0){			
-				i = fifo8_get(&keyfifo);
-				io_sti();
-				sprintf(s, "%02X", i);
+			i = fifo32_get(&fifo);
+			io_sti();
+			if(256 <= i && i <=511){
+				// キーボード
+				sprintf(s, "%02X", i-256);
 				putfont8_asc_sht(sht_back, 0, 16, COL8_FFFFFF, COL8_008484, s, 2);
-			}else if(fifo8_status(&mousefifo) != 0){
-				i = fifo8_get(&mousefifo);
-				io_sti();
+
+			}else if(512 <= i && i <= 767){
+				// マウス
 				if( mouse_decode(binfo, &mdec, i)!=0 ){	
 					sprintf(s, "[lcr %4d %4d]", mdec.x, mdec.y);
 					if((mdec.btn & 0x01)!=0){
@@ -128,33 +130,34 @@ void HariMain(void)
 					sprintf(s, "(%3d, %3d)", mx, my);
 					putfont8_asc_sht(sht_back, 0, 0, COL8_FFFFFF, COL8_008484, s, 10);
 					sheet_slide(sht_mouse, mx, my);
-				}
-			}else if(fifo8_status(&timerfifo) !=0){
-				i = fifo8_get(&timerfifo);
-				io_sti();
-				switch (i)
+				}	
+			}
+	
+			switch (i)
 				{
+					case 0: // カーソルタイマ
+						timer_init(timer3, &fifo, 1); // 次は1 
+						boxfill8(buf_back, binfo->scrnx, COL8_008484, 8, 96, 15, 111);
+						timer_settime(timer3, 50);
+						sheet_refresh(sht_back, 8, 96, 16, 112);
+						break;
+					case 1: // カーソルタイマ
+						timer_init(timer3, &fifo, 0);
+						boxfill8(buf_back, binfo->scrnx, COL8_FFFFFF, 8, 96, 15, 111);
+						timer_settime(timer3, 50);
+						sheet_refresh(sht_back, 8, 96, 16, 112);
+						break;
 					case 3:
 						putfont8_asc_sht(sht_back, 0, 80, COL8_FFFFFF, COL8_008484, "3[sec]", 6);
-						timer_init(timer2, &timerfifo, 0);
-						//count =0;
+						timer_init(timer2, &fifo, 0);
+						count =0;
 						break;					
 					case 10:
 						putfont8_asc_sht(sht_back, 0, 64, COL8_FFFFFF, COL8_008484, "10[sec]", 7);		
+						sprintf(s, "%010d", count);
+						putfont8_asc_sht(sht_win, 40, 28,COL8_000000, COL8_C6C6C6, s, 10);	
 						break;
-				}
-		
-				if(i != 0){
-					timer_init(timer3, &timerfifo, 0); // 次は0 
-					boxfill8(buf_back, binfo->scrnx, COL8_FFFFFF, 8, 96, 15, 111);
-				}else{
-					timer_init(timer3, &timerfifo, 1); // 次は1 
-					boxfill8(buf_back, binfo->scrnx, COL8_008484, 8, 96, 15, 111);
-			}
-				timer_settime(timer3, 50);
-				sheet_refresh(sht_back, 8, 96, 16, 112);
-			}
-			
+				}	
 		}
 	}
 }

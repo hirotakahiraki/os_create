@@ -1,17 +1,21 @@
 #include "bootpack.h"
-FIFO8 mousefifo;
+FIFO32 *mousefifo;
+int mousedata0;
 
 /* ps/2マウスからの割り込み */
 void inthandler2c(int *esp){
-    unsigned char data;
+    int data;
     io_out8(PIC1_OCW2, 0x64);
     io_out8(PIC0_OCW2, 0x62);
     data = io_in8(PORT_KEYDAT);
-    fifo8_put(&mousefifo, data);
+    fifo32_put(mousefifo, data + mousedata0);
     return;
 }
 
-void enable_mouse(MOUSE_DEC *mdec){
+void enable_mouse(FIFO32 *fifo, int data0 ,MOUSE_DEC *mdec){
+	/* 書き込み先のFIFOバッファを記憶 */
+	mousefifo = fifo;
+	mousedata0 = data0;
 	/* マウス有効 */
 	wait_KBC_sendReady();
 	io_out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);
