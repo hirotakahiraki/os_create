@@ -51,14 +51,6 @@ void timer_settime(TIMER *timer, unsigned int timeout){
     e = io_load_eflags();
     io_cli();
     timerctl.using +=1;
- /*   if(timerctl.using ==1){
-        // 動作中のタイマはこれ1つになる場合
-        timerctl.t0 = timer;
-        timer->next = 0;
-        timerctl.next = timer->timeout;
-        io_store_eflags(e);
-        return;
-    }*/
     t = timerctl.t0;
     if(timer->timeout <= t->timeout){
         // 先頭に入れる場合
@@ -83,10 +75,6 @@ void timer_settime(TIMER *timer, unsigned int timeout){
             return;
         }
     }
-/*    // 一番後ろに入れる
-    s->next = (struct TIMER *) timer;
-    timer->next = (struct TIMER*) timer;     
-    io_store_eflags(e);*/
     return;
 }
 

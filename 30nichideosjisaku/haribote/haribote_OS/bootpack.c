@@ -26,12 +26,11 @@ void HariMain(void)
 	io_sti();
 
 	fifo32_init(&fifo, 128, fifobuf);
-	//fifo8_init(&mousefifo, 128, mousebuf);
 	init_pit();
 	io_out8(PIC0_IMR, 0xf8); /* PIT, PIC1, キーボードを初期化 */
 	io_out8(PIC1_IMR, 0xef);
 
-	//fifo8_init(&timerfifo, 8, timerbuf);
+	set490(&fifo,0);
 	timer = timer_alloc();
 	timer_init(timer, &fifo, 10);
 	timer_settime(timer,1000);
@@ -219,4 +218,17 @@ void putfont8_asc_sht(SHEET *sht, int x, int y, int c, int b, char *s, int l){
 	boxfill8(sht->buf, sht->bxsize, b, x, y, x+l*8-1, y+15);
 	putfonts8_asc((char *)sht->buf, sht->bxsize, x, y, c, s);
 	sheet_refresh(sht, x, y, x + l*8, y+16);
+}
+
+void set490(FIFO32 *fifo, int mode){
+	int i;
+	TIMER *timer;
+	if(mode != 0){
+		for(i=0;i<490;i++){
+			timer =timer_alloc();
+			timer_init(timer, fifo, 1024 +i);
+			timer_settime(timer, 100*60*60*24*50 + i*100);
+		}
+	}
+	return;
 }

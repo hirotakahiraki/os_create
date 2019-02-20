@@ -227,3 +227,4 @@ void inthandler20(int *esp);
 #define CR0_CACHE_DISABLE		0x60000000
 void make_window8(unsigned char *buf, int xsize, int ysize, char *title);
 void putfont8_asc_sht(SHEET *sht, int x, int y, int c, int b, char *s, int l);
+void set490(FIFO32 *fifo, int mode);
