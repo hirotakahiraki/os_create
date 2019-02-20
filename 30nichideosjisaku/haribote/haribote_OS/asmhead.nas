@@ -1,6 +1,14 @@
 ; haribote-os boot asm
 ; TAB=4
 
+;[INSTRSET "i486p"]
+
+VBEMODE EQU		0x105
+	;0x101  640* 480  
+	;0x103  800* 600  
+	;0x105 1024* 768  
+	;0x107 1280*1024
+
 BOTPAK	EQU		0x00280000		; bootpackのロード先
 DSKCAC	EQU		0x00100000		; ディスクキャッシュの場所
 DSKCAC0	EQU		0x00008000		; ディスクキャッシュの場所(リアルモード)
@@ -15,27 +23,64 @@ VRAM	EQU		0x0ff8			; グラフィックバッファの開始番地
 
 		ORG		0xc200			; このプログラムがどこに読まれるのか
 
-; 画面モードを設定
+; VBE存在確認
+		MOV		AX,0x9000
+		MOV		ES,AX
+		MOV		DI,0
+		MOV		AX,0x4f00
+		MOV		0x10
+		CMP		AX,0x004f
+		JNE		scrn320
 
-		;MOV		AL,0x13			; VGAグラフィックス ,320*200*8bitカラー
-		;MOV		AH,0x00
-		;0x101  640* 480  
-		;0x103  800* 600  
-		;0x105 1024* 768  
-		;0x107 1280*1024 
-		MOV		BX,0x4103 
-		MOV		AX,0x4f02
+; VBEバージョンチェック
+		MOV		AX,[ES:DI+4]
+		CMP		AX,0x0200
+		JB		scrn320
+	
+; 画面モード情報を得る
+		MOV		CX,VBEMODE
+		MOV		AX,0x4f01
 		INT		0x10
-		MOV		BYTE [VMODE],8	; 画面モードをメモする(C言語が参照する)
-		MOV		WORD [SCRNX],800 ;320
-		MOV		WORD [SCRNY],600 ;200
-		MOV		DWORD [VRAM],0xfd000000	;0x000a0000
+		CMP		AX,0x004f
+		JNE		scrn320
 
-; キーボードのLED状態をBIOSに教えてもらう
+;画面モード情報の確認
+		CMP 	BYTE [ES:DI+0x19],8
+		JNE		scrn320
+		CMP		BYTE [ES:DI+0x1b],4
+		JNE		scrn320
+		MOV		AX,[ES:DI+0x00]
+		AND		AX,0x0080
+		JZ		scrn320
 
+; 画面モードの切り替え
+		MOV		BX,VBEMODE+0x4000
+		MOV		AX,0x4f02
+		INT 	0x10
+		MOV		BYTE [VMODE],8
+		MOV		AX,[ES:DI+0x12]
+		MOV		[SCRNX],AX
+		MOV		AX,[ES:DI+0x14]
+		MOV		[SCRNY],AX
+		MOV		EAX,[ES:DI+0x28]
+		MOV		[VRAM],EAX
+		JMP		keystatus
+
+scrn320:
+		;最小値 >> MOV		AL,0x13  MOV		AH,0x00
+		MOV		BX,0x4103
+		MOV 	AX,0x4f02
+		INT		0x10
+		MOV		BYTE [VMODE],8
+		MOV		WORD [SCRNX],800
+		MOV		WORD [SCRNY],600
+		MOV		DWORD [VRAM],0xfd000000
+	
+keystatus:
 		MOV		AH,0x02
-		INT		0x16 			; keyboard BIOS
+		INT 	0x16	;keyboard BIOS
 		MOV		[LEDS],AL
+
 
 ; 	PICが一切の割り込みを受けつけないようにする。
 ;	AT互換機の仕様では,PICの初期化をするなら、

@@ -74,7 +74,7 @@ void HariMain(void)
 	sprintf(s, "(%3d, %3d)", mx, my);
 	putfonts8_asc((char*)buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, s);
 
-	sprintf(s, "memory %dMB  free : %dKB, size : %dx%d", memtotal/(1024 *1024), memman_total(memman)/1024,binfo->scrnx, binfo->scrny);
+	sprintf(s, "memory %dMB  free : %dKB, %dx%d", memtotal/(1024 *1024), memman_total(memman)/1024,binfo->scrnx, binfo->scrny);
 	putfonts8_asc(buf_back, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
 	sheet_refresh(sht_back, 0, 0, binfo->scrnx, 48);
 
