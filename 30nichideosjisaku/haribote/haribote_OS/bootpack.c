@@ -62,7 +62,7 @@ void HariMain(void)
 	init_screen(buf_back, binfo->scrnx, binfo->scrny);
 
 	init_mouse_cursor8(buf_mouse, 99); //COL8_008484
-	make_window8(buf_win, 160, 68,"counter");
+	make_window8(buf_win, 160, 68,"console");
 	sheet_slide(sht_back, 0, 0);
 	mx = (binfo->scrnx -16)/2;
 	my = (binfo->scrny -28-16)/2;
@@ -108,7 +108,7 @@ void HariMain(void)
 
 			}else if(512 <= i && i <= 767){
 				// マウス
-				if( mouse_decode(binfo, &mdec, i)!=0 ){	
+				if( mouse_decode(binfo, &mdec, i-512)!=0 ){	
 					sprintf(s, "[lcr %4d %4d]", mdec.x, mdec.y);
 					if((mdec.btn & 0x01)!=0){
 						s[1] = 'L';
@@ -138,6 +138,10 @@ void HariMain(void)
 					sprintf(s, "(%3d, %3d)", mx, my);
 					putfonts8_asc_sht(sht_back, 0, 0, COL8_FFFFFF, COL8_008484, s, 10);
 					sheet_slide(sht_mouse, mx, my);
+					if((mdec.btn & 0x01) !=0){
+						// 左ボタンを推したら sht_winを動かす
+						sheet_slide(sht_win, mx - 80, my - 8);
+					}
 				}	
 			}
 	
