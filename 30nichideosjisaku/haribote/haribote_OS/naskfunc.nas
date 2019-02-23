@@ -16,6 +16,8 @@
 		EXTERN	_inthandler21, _inthandler27, _inthandler2c, _inthandler20
 		GLOBAL  _load_cr0, _store_cr0
 		GLOBAL  _memtest_sub
+		GLOBAL	_load_tr
+		GLOBAL	_taskswitch4
 
 
 [SECTION .text]
@@ -206,3 +208,11 @@ _asm_inthandler20:
 		POP		DS
 		POP		ES
 		IRETD
+
+_load_tr:		; void load_tr(int tr);
+		LTR		[ESP+4] ;tr
+		RET
+
+_taskswitch4:	; void taskswitch4(void)
+		JMP		4*8:0
+		RET

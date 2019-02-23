@@ -2,17 +2,15 @@
 #include "bootpack.h"
 
 FIFO32 fifo;
-//extern FIFO8 keyfifo, mousefifo;
 extern TIMERCTL timerctl;
-//FIFO8 timerfifo;
 BOOTINFO *binfo= (BOOTINFO *) ADR_BOOTINFO;
-// extern MOUSE_DEC mdec; externしてはいけない(未解決)
+TSS32 tss_a, tss_b;
 
 void HariMain(void)
 {
 	int fifobuf[128];	
 	char s[40], keybuf[32], mousebuf[128], timerbuf[8];
-	int mx, my, i, count10, cursor_x = 8, cursor_c = COL8_FFFFFF;
+	int mx, my, i, count10, cursor_x = 8, cursor_c = COL8_FFFFFF, task_b_esp;
 	unsigned int memtotal, count =0;
 	MOUSE_DEC mdec;
 	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
@@ -77,6 +75,33 @@ void HariMain(void)
 	sprintf(s, "memory %dMB  free : %dKB, %dx%d", memtotal/(1024 *1024), memman_total(memman)/1024,binfo->scrnx, binfo->scrny);
 	putfonts8_asc(buf_back, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
 	sheet_refresh(sht_back, 0, 0, binfo->scrnx, 48);
+
+	tss_a.ldtr = 0;
+	tss_a.iomap = 0x40000000;
+	tss_b.ldtr = 0;
+	tss_b.iomap =0x40000000;
+
+	SEGMENT_DISCRIPTOR *gdt = (SEGMENT_DISCRIPTOR *) ADR_GDT;
+	set_segmdesc(gdt + 3, 103, (int) &tss_a, AR_TSS32);
+	set_segmdesc(gdt + 4, 103, (int) &tss_b, AR_TSS32);
+	load_tr(3*8);
+	task_b_esp = memman_alloc_4k(memman, 64*1024) + 64*1024;
+	tss_b.eip = (int) &task_b_main;
+	tss_b.eflags = 0x00000202; //IF =1;
+	tss_b.eax = 0;
+	tss_b.ecx = 0;
+	tss_b.edx = 0;
+	tss_b.ebp = 0;
+	tss_b.esp = task_b_esp;
+	tss_b.ebp = 0;
+	tss_b.esi = 0;
+	tss_b.edi = 0;
+	tss_b.es = 1*8;
+	tss_b.cs = 2*8;
+	tss_b.ss = 1*8;
+	tss_b.ds = 1*8;
+	tss_b.fs = 1*8;
+	tss_b.gs = 1*8;
 
 	for (;;) {
 		io_cli();
@@ -166,6 +191,7 @@ void HariMain(void)
 						break;					
 					case 10:
 						putfonts8_asc_sht(sht_back, 0, 64, COL8_FFFFFF, COL8_008484, "10[sec]", 7);		
+						taskswitch4();
 						break;
 				}
 		}
@@ -253,4 +279,8 @@ void set490(FIFO32 *fifo, int mode){
 		}
 	}
 	return;
+}
+
+void task_b_main(void){
+	for(;;){ io_hlt(); }
 }
