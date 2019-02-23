@@ -248,3 +248,8 @@ typedef struct
 	int es, cs, ss, ds, fs, gs;
 	int ldtr, iomap;
 }TSS32;
+
+/* mtask.c */
+extern TIMER *mt_timer;
+void mt_init();
+void mt_taskswitch();
