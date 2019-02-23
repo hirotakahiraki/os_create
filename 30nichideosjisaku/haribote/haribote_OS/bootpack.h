@@ -46,6 +46,7 @@ unsigned int memtest_sub(unsigned int start, unsigned int end);
 void load_tr(int tr);
 void taskswitch4(void);
 void taskswitch3(void);
+void farjmp(int eip, int cs);
 
 int load_cr0(void);
 void store_cr0(int cr0);

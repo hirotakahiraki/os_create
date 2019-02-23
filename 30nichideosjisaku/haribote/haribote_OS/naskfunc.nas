@@ -19,6 +19,7 @@
 		GLOBAL	_load_tr
 		GLOBAL	_taskswitch4
 		GLOBAL	_taskswitch3
+		GLOBAL	_farjmp
 
 
 [SECTION .text]
@@ -220,4 +221,8 @@ _taskswitch4:	; void taskswitch4(void)
 
 _taskswitch3:	; void taskswitch3(void);
 		JMP		3*8:0
+		RET
+
+_farjmp:		; void farjmp(int eip, int cs);
+		JMP		FAR [ESP+4]	;eip, cs
 		RET

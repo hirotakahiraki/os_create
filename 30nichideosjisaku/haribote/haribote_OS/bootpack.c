@@ -16,7 +16,7 @@ void HariMain(void)
 	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
 	SHTCTL *shtctl;
 	SHEET *sht_back, *sht_mouse, *sht_win;
-	TIMER *timer, *timer2, *timer3;
+	TIMER *timer, *timer2, *timer3, *timer_ts;
 	unsigned char *buf_back, buf_mouse[256], *buf_win;
 
 	init_gdtidt();
@@ -38,6 +38,9 @@ void HariMain(void)
 	timer3 = timer_alloc();
 	timer_init(timer3, &fifo, 1);
 	timer_settime(timer3, 50);
+	timer_ts = timer_alloc();
+	timer_init(timer_ts, &fifo, 2);
+	timer_settime(timer_ts, 2);
 
 	init_keyboard(&fifo, 256);
 	enable_mouse(&fifo, 512, &mdec);
@@ -186,12 +189,15 @@ void HariMain(void)
 						boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);					
 						sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
 						break;
+					case 2:
+						farjmp(0, 4*8);
+						timer_settime(timer_ts, 2);
+						break;
 					case 3:
 						putfonts8_asc_sht(sht_back, 0, 80, COL8_FFFFFF, COL8_008484, "3[sec]", 6);
 						break;					
 					case 10:
-						putfonts8_asc_sht(sht_back, 0, 64, COL8_FFFFFF, COL8_008484, "10[sec]", 7);		
-						taskswitch4();
+						putfonts8_asc_sht(sht_back, 0, 64, COL8_FFFFFF, COL8_008484, "10[sec]", 7);
 						break;
 				}
 		}
@@ -283,12 +289,12 @@ void set490(FIFO32 *fifo, int mode){
 
 void task_b_main(void){
 	FIFO32 fifo;
-	TIMER *timer;
+	TIMER *timer_ts;
 	int i, fifobuf[128];
 	fifo32_init(&fifo, 128, fifobuf);
-	timer = timer_alloc();
-	timer_init(timer, &fifo, 1);
-	timer_settime(timer, 500);
+	timer_ts = timer_alloc();
+	timer_init(timer_ts, &fifo, 1);
+	timer_settime(timer_ts, 2);
 
 	for(;;){
 		io_cli();
@@ -298,7 +304,8 @@ void task_b_main(void){
 			i = fifo32_get(&fifo);
 			io_sti();
 			if(i == 1){
-				taskswitch3(); // タスクAに戻る
+				farjmp(0, 3*8); // タスクAに戻る
+				timer_settime(timer_ts, 2);
 			}
 		}
 
