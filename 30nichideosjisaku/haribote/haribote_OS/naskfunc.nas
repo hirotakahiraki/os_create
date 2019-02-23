@@ -17,8 +17,6 @@
 		GLOBAL  _load_cr0, _store_cr0
 		GLOBAL  _memtest_sub
 		GLOBAL	_load_tr
-		GLOBAL	_taskswitch4
-		GLOBAL	_taskswitch3
 		GLOBAL	_farjmp
 
 
@@ -213,14 +211,6 @@ _asm_inthandler20:
 
 _load_tr:		; void load_tr(int tr);
 		LTR		[ESP+4] ;tr
-		RET
-
-_taskswitch4:	; void taskswitch4(void)
-		JMP		4*8:0
-		RET
-
-_taskswitch3:	; void taskswitch3(void);
-		JMP		3*8:0
 		RET
 
 _farjmp:		; void farjmp(int eip, int cs);

@@ -44,8 +44,6 @@ void asm_inthandler27(void);
 void asm_inthandler2c(void);
 unsigned int memtest_sub(unsigned int start, unsigned int end);
 void load_tr(int tr);
-void taskswitch4(void);
-void taskswitch3(void);
 void farjmp(int eip, int cs);
 
 int load_cr0(void);

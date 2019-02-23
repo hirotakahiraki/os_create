@@ -5,7 +5,6 @@ FIFO32 fifo;
 extern TIMERCTL timerctl;
 BOOTINFO *binfo= (BOOTINFO *) ADR_BOOTINFO;
 TSS32 tss_a, tss_b;
-
 void HariMain(void)
 {
 	int fifobuf[128];	
@@ -105,6 +104,8 @@ void HariMain(void)
 	tss_b.ds = 1*8;
 	tss_b.fs = 1*8;
 	tss_b.gs = 1*8;
+
+	*((int *) 0x0fec) = (int)  sht_back;
 
 	for (;;) {
 		io_cli();
@@ -290,13 +291,19 @@ void set490(FIFO32 *fifo, int mode){
 void task_b_main(void){
 	FIFO32 fifo;
 	TIMER *timer_ts;
-	int i, fifobuf[128];
+	SHEET *sht_back;
+	int i, fifobuf[128], count;
+	char s[11];
+	sht_back = (SHEET *) *((int *)0x0fec);
 	fifo32_init(&fifo, 128, fifobuf);
 	timer_ts = timer_alloc();
 	timer_init(timer_ts, &fifo, 1);
 	timer_settime(timer_ts, 2);
 
 	for(;;){
+		count +=1;
+		sprintf(s, "%010d", count);
+		putfonts8_asc_sht(sht_back, 0, 160, COL8_FFFFFF, COL8_008484, s, 10);
 		io_cli();
 		if(fifo32_status(&fifo) == 0){
 			io_stihlt();
@@ -308,6 +315,5 @@ void task_b_main(void){
 				timer_settime(timer_ts, 2);
 			}
 		}
-
 	}
 }
