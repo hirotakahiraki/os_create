@@ -18,6 +18,7 @@
 		GLOBAL  _memtest_sub
 		GLOBAL	_load_tr
 		GLOBAL	_taskswitch4
+		GLOBAL	_taskswitch3
 
 
 [SECTION .text]
@@ -215,4 +216,8 @@ _load_tr:		; void load_tr(int tr);
 
 _taskswitch4:	; void taskswitch4(void)
 		JMP		4*8:0
+		RET
+
+_taskswitch3:	; void taskswitch3(void);
+		JMP		3*8:0
 		RET
