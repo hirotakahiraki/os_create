@@ -253,8 +253,6 @@ typedef struct
 
 /* mtask.c */
 extern TIMER *task_timer;
-void mt_init();
-void mt_taskswitch();
 typedef struct 
 {
 	int sel, flags; // selはGDTの番号

@@ -87,6 +87,7 @@ void HariMain(void)
 	task_b->tss.fs = 1*8;
 	task_b->tss.gs = 1*8;
 	*((int *)(task_b->tss.esp+4)) = (int) sht_back;
+	task_run(task_b);
 
 	for (;;) {
 		io_cli();
