@@ -14,13 +14,14 @@ TASK *task_init(MEMMAN *memman){
         set_segmdesc(gdt + TASK_GDT0 + i, 103, (int) &taskctl->tasks0[i].tss, AR_TSS32);
     }
     task = task_alloc();
-    task->flags = 2; //動作中
+    task->flags = 2; // 動作中
+    task->priority = 2; // 0.02秒
     taskctl->running = 1;
     taskctl->now = 0;
     taskctl->tasks[0] = task;
     load_tr(task->sel);
     task_timer = timer_alloc();
-    timer_settime(task_timer, 2);
+    timer_settime(task_timer, task->priority);
     return task;
 }
 
@@ -51,21 +52,28 @@ TASK *task_alloc(){
     return 0; 
 }
 
-void task_run(TASK *task){
+void task_run(TASK *task, int priority){
+    if(task->priority != 2){
+        task->priority = priority;
+    }
+    if(task->flags = 2){
     task->flags = 2; // 動作中
     taskctl->tasks[taskctl->running] = task;
     taskctl->running +=1;
+    }
     return;
 }
 
 void task_switch(){
-    timer_settime(task_timer, 2);
+    TASK *task;
+    taskctl->now +=1;
+    if(taskctl->now == taskctl->running){
+        taskctl->now = 0;
+    }
+    task = taskctl->tasks[taskctl->now];
+    timer_settime(task_timer, task->priority);
     if(taskctl->running >= 2){
-        taskctl->now += 1;
-        if(taskctl->now == taskctl->running){
-            taskctl->now = 0;
-        }
-        farjmp(0, taskctl->tasks[taskctl->now]->sel);
+        farjmp(0, task->sel);
     }
     return;
 }

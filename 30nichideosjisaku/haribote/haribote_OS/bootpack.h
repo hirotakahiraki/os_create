@@ -120,6 +120,7 @@ typedef struct
 typedef struct 
 {
 	int sel, flags; // selはGDTの番号
+	int priority;
 	TSS32 tss;
 }TASK;
 
@@ -270,6 +271,6 @@ typedef struct
 }TASKCTL;
 TASK *task_init(MEMMAN *memman);
 TASK *task_alloc(void);
-void task_run(TASK *task);
+void task_run(TASK *task, int priority);
 void task_switch();
 void task_sleep(TASK *task);
