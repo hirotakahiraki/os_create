@@ -42,13 +42,14 @@ int fifo8_status(FIFO8 *fifo){
     return fifo->size - fifo->free;
 }
 
-void fifo32_init(FIFO32 *fifo, int size, int *buf){
+void fifo32_init(FIFO32 *fifo, int size, int *buf, TASK *task){
     fifo->size = size; // 不変
     fifo->buf = buf; // 不変、開始アドレス
     fifo->free = size; // 空き
     fifo->flags = 0;
     fifo->p = 0; // 読み出し
     fifo->q = 0; // 書き込み
+    fifo->task = task;
     return;
 }
 
@@ -63,6 +64,12 @@ int fifo32_put(FIFO32 *fifo, int data){
         fifo->p = 0;
     }
     fifo->free -=1;
+    if(fifo->task != 0){
+        // 寝てたら起こす
+        if(fifo->task->flags != 2){
+            task_run(fifo->task);
+        }
+    }
     return 0;
 }
 

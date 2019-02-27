@@ -17,13 +17,13 @@ void HariMain(void)
 	SHEET *sht_back, *sht_mouse, *sht_win;
 	TIMER *timer, *timer2, *timer3;
 	unsigned char *buf_back, buf_mouse[256], *buf_win;
-	TASK *task_b;
+	TASK *task_a, *task_b;
 
 	init_gdtidt();
 	init_pic();
 	io_sti();
 
-	fifo32_init(&fifo, 128, fifobuf);
+	fifo32_init(&fifo, 128, fifobuf, 0);
 	init_pit();
 	io_out8(PIC0_IMR, 0xf8); /* PIT, PIC1, キーボードを初期化 */
 	io_out8(PIC1_IMR, 0xef);
@@ -76,7 +76,9 @@ void HariMain(void)
 	putfonts8_asc(buf_back, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
 	sheet_refresh(sht_back, 0, 0, binfo->scrnx, 48);
 
-	task_init(memman);
+	
+	task_a = task_init(memman);
+	fifo.task = task_a;
 	task_b = task_alloc();
 	task_b->tss.esp = memman_alloc_4k(memman, 64*1024) + 64 *1024 - 8;
 	task_b->tss.eip = (int) &task_b_main;
@@ -92,6 +94,7 @@ void HariMain(void)
 	for (;;) {
 		io_cli();
 		if(fifo32_status(&fifo) == 0){
+			task_sleep(task_a);
 			io_stihlt();
 		} else
 		{	
@@ -272,7 +275,7 @@ void task_b_main(SHEET *sht_back){
 	int i, fifobuf[128], count = 0, count0 = 0;
 	char s[12];
 
-	fifo32_init(&fifo, 128, fifobuf);
+	fifo32_init(&fifo, 128, fifobuf, 0);
 	timer_put = timer_alloc();
 	timer_init(timer_put, &fifo, 1);
 	timer_settime(timer_put, 1);

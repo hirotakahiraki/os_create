@@ -110,6 +110,19 @@ void inthandler2c(int *esp);
 
 
 /* fifo.c */
+typedef struct 
+{
+	int backlink, esp0, ss0, esp1, ss1, esp2, ss2, cr3;
+	int eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi;
+	int es, cs, ss, ds, fs, gs;
+	int ldtr, iomap;
+}TSS32;
+typedef struct 
+{
+	int sel, flags; // selはGDTの番号
+	TSS32 tss;
+}TASK;
+
 typedef struct{
 	unsigned char *buf;
 	int p, q, size, free, flags;
@@ -118,13 +131,14 @@ typedef struct
 {
 	int *buf;
 	int p, q, size, free, flags;
+	TASK *task;
 }FIFO32;
 
 void fifo8_init(FIFO8 *fifo, int size, unsigned char *buf);
 int fifo8_put(FIFO8 *fifo, unsigned char data);
 int fifo8_get(FIFO8 *fifo);
 int fifo8_status(FIFO8 *fifo);
-void fifo32_init(FIFO32 *fifo, int size, int *buf);
+void fifo32_init(FIFO32 *fifo, int size, int *buf, TASK *task);
 int fifo32_put(FIFO32 *fifo, int data);
 int fifo32_get(FIFO32 *fifo);
 int fifo32_status(FIFO32 *fifo);
@@ -243,22 +257,10 @@ static char keytable[0x54]={
 	'*',  0 , ' ',  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , 0, 0,//16 
 	'7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.' //13
 	};
-typedef struct 
-{
-	int backlink, esp0, ss0, esp1, ss1, esp2, ss2, cr3;
-	int eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi;
-	int es, cs, ss, ds, fs, gs;
-	int ldtr, iomap;
-}TSS32;
 
 /* mtask.c */
 extern TIMER *task_timer;
-typedef struct 
-{
-	int sel, flags; // selはGDTの番号
-	TSS32 tss;
-}TASK;
-
+// TASK のstructはfifoで利用するためfifoの上にある。
 typedef struct 
 {
 	int running; //動作しているタスクの数
@@ -270,3 +272,4 @@ TASK *task_init(MEMMAN *memman);
 TASK *task_alloc(void);
 void task_run(TASK *task);
 void task_switch();
+void task_sleep(TASK *task);

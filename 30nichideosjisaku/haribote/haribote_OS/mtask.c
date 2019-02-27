@@ -69,3 +69,41 @@ void task_switch(){
     }
     return;
 }
+
+void task_sleep(TASK *task){
+    int i;
+    char ts = 0;
+    // 指定タスクが起きていたら
+    if(task->flags == 2){
+        // 自分自身を寝かせるのであとでタスクスイッチする。
+        if(task == taskctl->tasks[taskctl->now]){
+            ts = 1;
+        }
+        // タスクがどこにいるかを探す
+        for(i = 0;i < taskctl->running; i++){
+            if(taskctl->tasks[i] == task){
+                break;
+            }
+        }
+        taskctl->running -= 1;
+        if(i < taskctl->now){
+            // ずれるので、これも合わせておく。
+            taskctl->now -= 1;
+        }
+        // ずらし
+        for(; i < taskctl->running; i++){
+            taskctl->tasks[i] = taskctl->tasks[i+1];
+        }
+        // 動作していない状態
+        task->flags = 1;
+        if(ts != 0){
+            // タクトスイッチする
+            if(taskctl->now >= taskctl->running){
+                // nowがおかしな値になっていたら修正する。
+                taskctl->now = 0;
+            }
+            farjmp(0, taskctl->tasks[taskctl->now]->sel);
+        }
+    }
+    return;
+}
