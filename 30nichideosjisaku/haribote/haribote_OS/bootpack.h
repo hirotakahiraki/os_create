@@ -244,7 +244,7 @@ void inthandler20(int *esp);
 #define CR0_CACHE_DISABLE		0x60000000
 #define MAX_TASK				1000 // 最大タスク
 #define TASK_GDT0				3 // TSSをGDTの何番目から割り当てるか
-void make_window8(unsigned char *buf, int xsize, int ysize, char *title);
+void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char act);
 void make_textbox8(SHEET *sht, int x0, int y0, int sx, int sy, int c);
 void putfonts8_asc_sht(SHEET *sht, int x, int y, int c, int b, char *s, int l);
 void set490(FIFO32 *fifo, int mode);
