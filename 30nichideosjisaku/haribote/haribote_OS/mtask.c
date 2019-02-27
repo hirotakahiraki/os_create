@@ -13,12 +13,16 @@ TASK *task_init(MEMMAN *memman){
         taskctl->tasks0[i].sel = (TASK_GDT0 + i) * 8;
         set_segmdesc(gdt + TASK_GDT0 + i, 103, (int) &taskctl->tasks0[i].tss, AR_TSS32);
     }
+    for(i =0; i < MAX_TASKLEVELS; i++){
+        taskctl->level[i].running = 0;
+        taskctl->level[i].now = 0;
+    }
     task = task_alloc();
     task->flags = 2; // 動作中
     task->priority = 2; // 0.02秒
-    taskctl->running = 1;
-    taskctl->now = 0;
-    taskctl->tasks[0] = task;
+    task->level = 0; // 最高レベル
+    task_add(task);
+    task_switchsub(); // レベル設定
     load_tr(task->sel);
     task_timer = timer_alloc();
     timer_settime(task_timer, task->priority);
@@ -52,66 +56,110 @@ TASK *task_alloc(){
     return 0; 
 }
 
-void task_run(TASK *task, int priority){
-    if(task->priority != 2){
+void task_run(TASK *task, int level, int priority){
+    if(level < 0){
+        level = task->level;
+    }
+    if(priority > 0){
         task->priority = priority;
     }
-    if(task->flags = 2){
-    task->flags = 2; // 動作中
-    taskctl->tasks[taskctl->running] = task;
-    taskctl->running +=1;
+    // 動作中のレベルの変更
+    if(task->flags == 2 && task->level != level){
+        task_remove(task);
     }
+    if(task->flags != 2){
+        // sleepから起こされる場合
+        task->level = level;
+        task_add(task);
+    }
+    taskctl->lv_change = 1; // 次回タクトスイッチのときにレベルを見直す
     return;
 }
 
 void task_switch(){
-    TASK *task;
-    taskctl->now +=1;
-    if(taskctl->now == taskctl->running){
-        taskctl->now = 0;
+    TASKLEVEL *tl = &taskctl->level[taskctl->now_lv];
+    TASK *new_task, *now_task = tl->tasks[tl->now];
+    tl->now +=1;
+    if(tl->now == tl->running){
+        tl->now = 0;
     }
-    task = taskctl->tasks[taskctl->now];
-    timer_settime(task_timer, task->priority);
-    if(taskctl->running >= 2){
-        farjmp(0, task->sel);
+    if(taskctl->lv_change != 0){
+        task_switchsub();
+        tl = &taskctl->level[taskctl->now_lv];
+    }
+    new_task = tl->tasks[tl->now];
+    timer_settime(task_timer, new_task->priority);
+    if(new_task != now_task){
+        farjmp(0, new_task->sel);
     }
     return;
 }
 
 void task_sleep(TASK *task){
-    int i;
-    char ts = 0;
+    TASK *now_task;
     // 指定タスクが起きていたら
     if(task->flags == 2){
-        // 自分自身を寝かせるのであとでタスクスイッチする。
-        if(task == taskctl->tasks[taskctl->now]){
-            ts = 1;
-        }
-        // タスクがどこにいるかを探す
-        for(i = 0;i < taskctl->running; i++){
-            if(taskctl->tasks[i] == task){
-                break;
-            }
-        }
-        taskctl->running -= 1;
-        if(i < taskctl->now){
-            // ずれるので、これも合わせておく。
-            taskctl->now -= 1;
-        }
-        // ずらし
-        for(; i < taskctl->running; i++){
-            taskctl->tasks[i] = taskctl->tasks[i+1];
-        }
-        // 動作していない状態
-        task->flags = 1;
-        if(ts != 0){
-            // タクトスイッチする
-            if(taskctl->now >= taskctl->running){
-                // nowがおかしな値になっていたら修正する。
-                taskctl->now = 0;
-            }
-            farjmp(0, taskctl->tasks[taskctl->now]->sel);
+        now_task = task_now();
+        task_remove(task);
+        if(task == now_task){
+            // 自分自身がスリープだったのでタスクスイッチが必要
+            task_switchsub();
+            now_task = task_now(); // 設定後での、現在のタスクを教えてもらう
+            farjmp(0, now_task->sel);
         }
     }
+    return;
+}
+
+TASK *task_now(){
+    TASKLEVEL *tl = &taskctl->level[taskctl->now_lv];
+    return tl->tasks[tl->now];
+}
+
+void task_add(TASK *task){
+    TASKLEVEL *tl = &taskctl->level[task->level];
+    tl->tasks[tl->running] = task;
+    tl->running += 1;
+    task->flags = 2; // 動作中
+    return;
+}
+
+void task_remove(TASK *task){
+    int i;
+    TASKLEVEL *tl = &taskctl->level[task->level];
+
+    // taskがどこにいるかを表す
+    for(i = 0; i< tl->running; i++){
+        // いた場合
+        if(tl->tasks[i] == task){
+            break;
+        }
+    }
+    tl->running -= 1;
+    if(i< tl->now){
+        tl->now -= 1;
+    }
+    // nowがおかしな値になっていたら修正
+    if(tl->now >= tl->running){
+        tl->now = 0;
+    }
+    task->flags = 1;
+    // ずらし
+    for(;i > tl->running; i++){
+        tl->tasks[i] = tl->tasks[i+1];
+    }
+    return;
+}
+
+void task_switchsub(void){
+    int i;
+    // 一番上のレベルを探す
+    for(i =0;i < MAX_TASKLEVELS; i++){
+        if(taskctl->level[i].running > 0){
+            break; // 見つかった
+        }
+    }
+    taskctl->now_lv = i;
+    taskctl->lv_change = 0;
     return;
 }

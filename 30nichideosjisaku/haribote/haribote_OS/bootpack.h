@@ -110,6 +110,8 @@ void inthandler2c(int *esp);
 
 
 /* fifo.c */
+#define MAX_TASKSLEVEL			100
+#define MAX_TASKLEVELS			10
 typedef struct 
 {
 	int backlink, esp0, ss0, esp1, ss1, esp2, ss2, cr3;
@@ -120,9 +122,16 @@ typedef struct
 typedef struct 
 {
 	int sel, flags; // selはGDTの番号
-	int priority;
+	int level, priority;
 	TSS32 tss;
 }TASK;
+
+typedef struct 
+{
+	int running; // 動作しているタスクの数
+	int now; // 現在動作しているタスクがどれだかわかるようにするための数
+	TASK *tasks[MAX_TASKSLEVEL];
+}TASKLEVEL;
 
 typedef struct{
 	unsigned char *buf;
@@ -264,13 +273,17 @@ extern TIMER *task_timer;
 // TASK のstructはfifoで利用するためfifoの上にある。
 typedef struct 
 {
-	int running; //動作しているタスクの数
-	int now; // 現在動作しているタスクがどれだかわかるようにするための変数
-	TASK *tasks[MAX_TASK];
+	int now_lv; // 現在動作中のレベル
+	char lv_change; // 次回タスクスイッチのときに、レベルも変えた方が良いかどうか
+	TASKLEVEL level[MAX_TASKSLEVEL];
 	TASK tasks0[MAX_TASK];
 }TASKCTL;
 TASK *task_init(MEMMAN *memman);
 TASK *task_alloc(void);
-void task_run(TASK *task, int priority);
+void task_run(TASK *task, int level, int priority);
 void task_switch();
 void task_sleep(TASK *task);
+TASK *task_now();
+void task_add(TASK *task);
+void task_remove(TASK *task);
+void task_switchsub(void);
