@@ -228,6 +228,8 @@ void inthandler20(int *esp);
 /* bootpack.c */
 #define EFLAGS_AC_BIT			0x00040000
 #define CR0_CACHE_DISABLE		0x60000000
+#define MAX_TASK				1000 // 最大タスク
+#define TASK_GDT0				3 // TSSをGDTの何番目から割り当てるか
 void make_window8(unsigned char *buf, int xsize, int ysize, char *title);
 void make_textbox8(SHEET *sht, int x0, int y0, int sx, int sy, int c);
 void putfonts8_asc_sht(SHEET *sht, int x, int y, int c, int b, char *s, int l);
@@ -250,6 +252,23 @@ typedef struct
 }TSS32;
 
 /* mtask.c */
-extern TIMER *mt_timer;
+extern TIMER *task_timer;
 void mt_init();
 void mt_taskswitch();
+typedef struct 
+{
+	int sel, flags; // selはGDTの番号
+	TSS32 tss;
+}TASK;
+
+typedef struct 
+{
+	int running; //動作しているタスクの数
+	int now; // 現在動作しているタスクがどれだかわかるようにするための変数
+	TASK *tasks[MAX_TASK];
+	TASK tasks0[MAX_TASK];
+}TASKCTL;
+TASK *task_init(MEMMAN *memman);
+TASK *task_alloc(void);
+void task_run(TASK *task);
+void task_switch();
