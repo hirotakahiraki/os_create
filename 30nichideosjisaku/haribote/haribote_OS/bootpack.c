@@ -28,17 +28,6 @@ void HariMain(void)
 	io_out8(PIC0_IMR, 0xf8); /* PIT, PIC1, キーボードを初期化 */
 	io_out8(PIC1_IMR, 0xef);
 
-	/*set490(&fifo,0);
-	timer = timer_alloc();
-	timer_init(timer, &fifo, 10);
-	timer_settime(timer,1000);
-	timer2 = timer_alloc();
-	timer_init(timer2, &fifo, 3);
-	timer_settime(timer2,300);
-	timer3 = timer_alloc();
-	timer_init(timer3, &fifo, 1);
-	timer_settime(timer3, 50);
-	*/
 	init_keyboard(&fifo, 256);
 	enable_mouse(&fifo, 512, &mdec);
 	memtotal = memtest(0x00400000,0xbfffffff);
@@ -75,7 +64,7 @@ void HariMain(void)
 		task_b[i]->tss.fs = 1*8;
 		task_b[i]->tss.gs = 1*8;
 		*((int *)(task_b[i]->tss.esp + 4)) = (int)sht_win_b[i];
-		task_run(task_b[i], 2, i+1);
+		//task_run(task_b[i], 2, i+1);
 	}
 	// sht_win
 	sht_win = sheet_alloc(shtctl);
@@ -114,7 +103,7 @@ void HariMain(void)
 	putfonts8_asc((char*)buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, s);
 	sprintf(s, "memory %dMB  free : %dKB, %dx%d", memtotal/(1024 *1024), memman_total(memman)/1024,binfo->scrnx, binfo->scrny);
 	putfonts8_asc(buf_back, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
-	//sheet_refresh(sht_back, 0, 0, binfo->scrnx, 48);
+	sheet_refresh(sht_back, 0, 0, binfo->scrnx, 48);
 
 	for (;;) {
 		io_cli();
