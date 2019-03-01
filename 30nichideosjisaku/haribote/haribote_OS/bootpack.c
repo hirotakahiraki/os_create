@@ -9,7 +9,7 @@ void HariMain(void)
 {
 	int fifobuf[128];	
 	char s[40], keybuf[32], mousebuf[128], timerbuf[8];
-	int mx, my, i, count10, cursor_x = 8, cursor_c = COL8_FFFFFF, task_b_esp;
+	int mx, my, i, count10, cursor_x = 8, cursor_c = COL8_FFFFFF, task_b_esp, key_to = 0;
 	unsigned int memtotal, count =0;
 	MOUSE_DEC mdec;
 	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
@@ -122,11 +122,28 @@ void HariMain(void)
 						cursor_x += 8;
 					}
 				}
+
 				// delete
 				if(i == 256 + 0x0e && cursor_x > 8){
 					putfonts8_asc_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, " ", 1);
 					cursor_x -= 8;
 				}
+
+				// tabボタン 
+				if(i == 256 + 0x0f){
+					if(key_to == 0){
+						key_to = 1;
+						make_wtitle8(buf_win, sht_win->bxsize, "task_a", 0);
+						make_wtitle8(buf_cons, sht_cons->bxsize, "console", 1);
+					} else {
+						key_to = 0;
+						make_wtitle8(buf_win, sht_win->bxsize, "task_a", 1);
+						make_wtitle8(buf_cons, sht_cons->bxsize, "console", 0);						
+					}
+					sheet_refresh(sht_win, 0, 0, sht_win->bxsize, 21);
+					sheet_refresh(sht_cons, 0, 0, sht_cons->bxsize, 21);
+				}
+
 				// カーソルの再表示
 				boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
 				sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8 ,44);
@@ -198,32 +215,6 @@ void HariMain(void)
 }
 
 void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char act){
-	static char closebtn[14][16] ={
-		"OOOOOOOOOOOOOOO@",
-		"OQQQQQQQQQQQQQ$@",
-		"OQQQQQQQQQQQQQ$@",
-		"OQQQ@@QQQQ@@QQ$@",
-		"OQQQQ@@QQ@@QQQ$@",
-		"OQQQQQ@@@@QQQQ$@",
-		"OQQQQQQ@@QQQQQ$@",
-		"OQQQQQ@@@@QQQQ$@",
-		"OQQQQ@@QQ@@QQQ$@",
-		"OQQQ@@QQQQ@@QQ$@",
-		"OQQQQQQQQQQQQQ$@",
-		"OQQQQQQQQQQQQQ$@",
-		"O$$$$$$$$$$$$$$@",
-		"@@@@@@@@@@@@@@@@",
-
-	};
-	int x, y;
-	char c, tc, tbc;
-	if(act != 0){
-		tc = COL8_FFFFFF;
-		tbc = COL8_008484;
-	} else {
-		tc = COL8_C6C6C6;
-		tbc = COL8_848484;
-	}
 	boxfill8(buf, xsize, COL8_C6C6C6, 0, 		 0, 		xsize -1, 	0		 );
 	boxfill8(buf, xsize, COL8_FFFFFF, 1, 		 1, 		xsize -2, 	1		 );
 	boxfill8(buf, xsize, COL8_C6C6C6, 0, 		 0, 		0, 			ysize - 1);
@@ -231,25 +222,9 @@ void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char ac
 	boxfill8(buf, xsize, COL8_848484, xsize - 2, 1, 		xsize -2, 	ysize - 2);
 	boxfill8(buf, xsize, COL8_000000, xsize - 1, 0, 		xsize -1, 	ysize - 1);
 	boxfill8(buf, xsize, COL8_C6C6C6, 2, 		 2, 		xsize -3, 	ysize - 3);
-	boxfill8(buf, xsize, COL8_000084, 3, 		 3, 		xsize -4, 	20		 );
-	boxfill8(buf, xsize, COL8_848484, 1, 		 ysize-2, 	xsize -2, 	ysize-2  );
-	boxfill8(buf, xsize, COL8_000000, 0, 		 ysize-1, 	xsize -1, 	ysize-1  );
-	putfonts8_asc(buf, xsize, 24, 4, tc, title);
-	for(y=0; y <14; y++){
-		for(x =0 ; x<16; x++){
-			c = closebtn[y][x];
-			if(c == '@'){
-				c = COL8_000000;
-			} else if(c == '$'){
-				c = COL8_848484;
-			} else if(c == 'Q'){
-				c = COL8_C6C6C6;
-			}else{
-				c = COL8_FFFFFF;
-			}
-			buf[(5+y)*xsize + (xsize -21 + x)] = c;
-		}
-	}
+	boxfill8(buf, xsize, COL8_848484, 1, 		 ysize-2, 	xsize -2, 	ysize - 2);
+	boxfill8(buf, xsize, COL8_000000, 0, 		 ysize-1, 	xsize -1, 	ysize - 1);
+	make_wtitle8(buf, xsize, title, act);
 	return;		
 }
 
@@ -353,4 +328,51 @@ void console_task(SHEET *sheet){
 			}
 		}
 	}
+}
+
+void make_wtitle8(unsigned char *buf, int xsize, char *title, char act){
+		static char closebtn[14][16] ={
+		"OOOOOOOOOOOOOOO@",
+		"OQQQQQQQQQQQQQ$@",
+		"OQQQQQQQQQQQQQ$@",
+		"OQQQ@@QQQQ@@QQ$@",
+		"OQQQQ@@QQ@@QQQ$@",
+		"OQQQQQ@@@@QQQQ$@",
+		"OQQQQQQ@@QQQQQ$@",
+		"OQQQQQ@@@@QQQQ$@",
+		"OQQQQ@@QQ@@QQQ$@",
+		"OQQQ@@QQQQ@@QQ$@",
+		"OQQQQQQQQQQQQQ$@",
+		"OQQQQQQQQQQQQQ$@",
+		"O$$$$$$$$$$$$$$@",
+		"@@@@@@@@@@@@@@@@",
+
+	};
+	int x, y;
+	char c, tc, tbc;
+	if(act != 0){
+		tc = COL8_FFFFFF;
+		tbc = COL8_000084;
+	} else {
+		tc = COL8_C6C6C6;
+		tbc = COL8_848484;
+	}
+	boxfill8(buf, xsize, COL8_000084, 3, 3, xsize -4, 20);
+	putfonts8_asc(buf, xsize, 24, 4, tc, title);
+	for(y=0; y <14; y++){
+		for(x =0 ; x<16; x++){
+			c = closebtn[y][x];
+			if(c == '@'){
+				c = COL8_000000;
+			} else if(c == '$'){
+				c = COL8_848484;
+			} else if(c == 'Q'){
+				c = COL8_C6C6C6;
+			}else{
+				c = COL8_FFFFFF;
+			}
+			buf[(5+y)*xsize + (xsize -21 + x)] = c;
+		}
+	}
+	return;
 }
