@@ -259,6 +259,7 @@ void make_textbox8(SHEET *sht, int x0, int y0, int sx, int sy, int c);
 void putfonts8_asc_sht(SHEET *sht, int x, int y, int c, int b, char *s, int l);
 void set490(FIFO32 *fifo, int mode);
 void task_b_main(SHEET *sht);
+void console_task(SHEET *sheet);
 static char keytable[0x54]={
 	 0,   0,  '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0, 0,  //16
 	'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '[',  0 ,  0 , //14
