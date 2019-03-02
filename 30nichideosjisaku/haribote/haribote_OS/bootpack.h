@@ -123,6 +123,7 @@ typedef struct
 {
 	int sel, flags; // selはGDTの番号
 	int level, priority;
+	struct FIFO32 *fifo;
 	TSS32 tss;
 }TASK;
 
