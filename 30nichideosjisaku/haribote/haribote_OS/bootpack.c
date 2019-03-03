@@ -343,7 +343,7 @@ void console_task(SHEET *sheet, unsigned int memtotal){
 	TIMER * timer;
 	TASK *task = task_now();
 
-	int i, fifobuf[128], cursor_x = 16, cursor_y = 28, cursor_c = -1;
+	int i, x, y, fifobuf[128], cursor_x = 16, cursor_y = 28, cursor_c = -1;
 	char s[30],cmdline[30];
 	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
 
@@ -394,34 +394,43 @@ void console_task(SHEET *sheet, unsigned int memtotal){
 					if(cursor_x > 16){ 
 						// カーソルをスペースで消してからカーソルを一つ戻す
 						putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, "", 1);
+						cmdline[cursor_x/8] = 0;
 						cursor_x -= 8;
 					} else if(cursor_x == 16){
 						// ">"だけにする
 						putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, " ", 1);
 					}
 				} else if(i == 10 + 256){ //enter
-					if(cursor_y < 28 +112){
-						// カーソルをスペースで消す
-						putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, " ", 1);
-						cmdline[cursor_x/8 -2] = 0;
+				
+					// カーソルをスペースで消す
+					putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, " ", 1);
+					cmdline[cursor_x/8 -2] = 0;
+					cursor_y = cons_newline(cursor_y, sheet);
+					if(strcmp(cmdline, "mem")==0 ){
+						sprintf(s, "%dMB" ,memtotal/(1024*1024));
+						putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, s, 30);
 						cursor_y = cons_newline(cursor_y, sheet);
-						if(strcmp(cmdline, "mem")==0 ){
-							sprintf(s, "%dMB" ,memtotal/(1024*1024));
-							putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, s, 30);
-							cursor_y = cons_newline(cursor_y, sheet);
-							sprintf(s, "free %dKB", memman_total(memman) / 1024);
-							putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, s, 30);
-							cursor_y = cons_newline(cursor_y, sheet);
-							cursor_y = cons_newline(cursor_y, sheet);
-						} else if(cmdline[0] != 0) {
-							putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, "Bad Command", 12);
-							cursor_y = cons_newline(cursor_y, sheet);
-							cursor_y = cons_newline(cursor_y, sheet);
-						}
-						// プロンプト表示
-						putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, ">", 1);
-						cursor_x = 16;
+						sprintf(s, "free %dKB", memman_total(memman) / 1024);
+						putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, s, 30);
+						cursor_y = cons_newline(cursor_y, sheet);
+						cursor_y = cons_newline(cursor_y, sheet);
+					} else if(strcmp(cmdline, "cls")==0){
+							for(y = 28; y<28 +128;y++){
+								for(x = 8; x < 8+240; x++){
+									sheet->buf[x + y*sheet->bxsize] = COL8_000000;
+								}
+							}
+							sheet_refresh(sheet, 8, 28, 8+240, 28 +128);
+							cursor_y = 28;
+					} else if(cmdline[0] != 0) {
+						putfonts8_asc_sht(	sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, "Bad Command", 12);
+						cursor_y = cons_newline(cursor_y, sheet);
+						cursor_y = cons_newline(cursor_y, sheet);
 					}
+					// プロンプト表示
+					putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, ">", 1);
+					cursor_x = 16;
+				
 				} else {
 					// 一般文字
 					if(cursor_x < 240){
