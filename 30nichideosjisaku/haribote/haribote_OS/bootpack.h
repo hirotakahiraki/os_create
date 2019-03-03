@@ -4,8 +4,9 @@ typedef struct {
 	short scrnx,scrny;
 	char  *vram;
 }BOOTINFO;
-
+/* asmhead.nas */
 #define ADR_BOOTINFO    0x00000ff0
+#define ADR_DISKIMG		0x00100000
 
 /* color setting */
 #define COL8_000000		0
@@ -263,6 +264,14 @@ void task_b_main(SHEET *sht);
 void console_task(SHEET *sheet, unsigned int memtotal);
 int cons_newline(int cursor_y, SHEET *sheet);
 void make_wtitle8(unsigned char *buf, int xsize, char *title, char act);
+typedef struct 
+{
+	unsigned char name[8], ext[3], type;
+	char reserve[10];
+	unsigned short time, data, clustno;
+	unsigned int size;
+}FIFOINFO;
+
 static char keytable0[0x80]={
 	 0,   0,  '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0, 0,  //16
 	'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '@', '[',  0 ,  0 , //14
