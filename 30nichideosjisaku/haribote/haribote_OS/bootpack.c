@@ -10,7 +10,7 @@ void HariMain(void)
 	int fifobuf[128];	
 	char s[40], keybuf[32], mousebuf[128], timerbuf[8];
 	int mx, my, i, count10, cursor_x = 8, cursor_c = COL8_FFFFFF, task_b_esp;
-	int key_to = 0, key_shift = 0;
+	int key_to = 0, key_shift = 0, key_leds = (binfo->leds >> 4) & 7, key_caps = 0;
 	unsigned int memtotal, count =0;
 	MOUSE_DEC mdec;
 	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
@@ -125,6 +125,11 @@ void HariMain(void)
 				} else {
 					s[0] = 0;
 				} 
+				if('a' <= s[0] && s[0] <= 'z'){ 
+					if(key_caps!=0 || key_shift !=0){
+							s[0] -= 0x20;
+					}
+				}
 				if(s[0] != 0){
 					if(key_to == 0){ //task Aへ
 						if(cursor_x < 128){
@@ -169,7 +174,7 @@ void HariMain(void)
 				// shiftキー
 				switch (i)
 				{
-						case 256 + 0x2a:
+					case 256 + 0x2a:
 						key_shift |= 1; // 左シフトON
 						break;
 					case 256 + 0x36:
@@ -180,6 +185,13 @@ void HariMain(void)
 						break;
 					case 256 + 0xb6:
 						key_shift &= ~2; // 右シフトOFF
+						break;
+					case 256 + 0xba:
+						if(key_caps != 0){
+							key_caps = 0;
+						} else {
+							key_caps = 1;
+						}
 						break;
 				}
 
