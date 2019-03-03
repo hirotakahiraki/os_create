@@ -344,7 +344,7 @@ void console_task(SHEET *sheet, unsigned int memtotal){
 	TASK *task = task_now();
 
 	int i, x, y, fifobuf[128], cursor_x = 16, cursor_y = 28, cursor_c = -1;
-	char s[30],cmdline[30];
+	char s[30],cmdline[30], *p;
 	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
 	FIFOINFO *finfo = (FIFOINFO *) (ADR_DISKIMG + 0x002600);
 
@@ -442,7 +442,59 @@ void console_task(SHEET *sheet, unsigned int memtotal){
 								}
 							}
 						}
-					} else if(cmdline[0] != 0) {
+					} else if(strncmp(cmdline, "cat ", 4)==0){
+						for(y =0;y<11;y++){
+							s[y] = ' ';
+						}
+						y = 0;
+						// xはコマンドの文字数+1から開始
+						for(x = 4;y<11 && cmdline[x] != 0;x++){
+							if(cmdline[x] == '.' && y<=8){
+								y = 8;
+							} else {
+								s[y] = cmdline[x];
+								if('a' <= s[y] && s[y] <= 'z'){
+									s[y] -= 0x20; // 小文字を大文字に
+								}
+								y++;
+							}
+						}
+						// ファイルを探す
+						for(x = 0;x<224;){
+							if(finfo[x].name[0]==0x00){break;}
+							if((finfo[x].type & 0x18)==0){
+								for(y =0 ;y<11;y++){
+									if(finfo[x].name[y] != s[y]){
+										goto type_next_file;
+									}
+								}
+								break;
+							}
+type_next_file:
+						x++;
+						}
+						if(x<224 && finfo[x].name[0] != 0x00){ // ファイルが見つかった
+							y = finfo[x].size;
+							p= (char *)(finfo[x].clustno*512 + 0x003e00 + ADR_DISKIMG);
+							cursor_x = 8;
+							for(x = 0;x<y;x++){
+								//一文字づつ出力
+								s[0] = p[x];
+								s[1] = 0;
+								putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, s, 1);
+								cursor_x += 8;
+								if(cursor_x == 8+240){
+									cursor_x = 8;
+									cursor_y = cons_newline(cursor_y, sheet);
+								}
+							}
+						} else { // ファイルが見つかった
+							putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, "file not found", 15);
+							cursor_y = cons_newline(cursor_y, sheet);
+						}
+						cursor_y = cons_newline(cursor_y, sheet);
+
+					}else if(cmdline[0] != 0) {
 						putfonts8_asc_sht(	sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, "Bad Command", 12);
 						cursor_y = cons_newline(cursor_y, sheet);
 						cursor_y = cons_newline(cursor_y, sheet);
