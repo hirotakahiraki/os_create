@@ -9,7 +9,8 @@ void HariMain(void)
 {
 	int fifobuf[128];	
 	char s[40], keybuf[32], mousebuf[128], timerbuf[8];
-	int mx, my, i, count10, cursor_x = 8, cursor_c = COL8_FFFFFF, task_b_esp, key_to = 0;
+	int mx, my, i, count10, cursor_x = 8, cursor_c = COL8_FFFFFF, task_b_esp;
+	int key_to = 0, key_shift = 0;
 	unsigned int memtotal, count =0;
 	MOUSE_DEC mdec;
 	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
@@ -114,17 +115,26 @@ void HariMain(void)
 				// キーボード
 				sprintf(s, "%02X", i-256);
 				putfonts8_asc_sht(sht_back, 0, 16, COL8_FFFFFF, COL8_008484, s, 2);
-				if(i< 256 + 0x54 && keytable[i-256] != 0){
+				// 文字コード変換
+				if(i< 256 + 0x80){
+					if(key_shift == 0){
+						s[0] = keytable0[i - 256];
+					} else {
+						s[0] = keytable1[i - 256];
+					}
+				} else {
+					s[0] = 0;
+				} 
+				if(s[0] != 0){
 					if(key_to == 0){ //task Aへ
 						if(cursor_x < 128){
 						// 一文字表示してカーソルを進める
-						s[0] = keytable[i-256];
 						s[1] = 0;
 						putfonts8_asc_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, s, 1);
 						cursor_x += 8;
 						} 
 					}else { // コンソールへ
-						fifo32_put((FIFO32 *)task_cons->fifo, keytable[i-256]+256);
+						fifo32_put((FIFO32 *)task_cons->fifo, s[0]+256);
 					}
 				}
 
@@ -154,6 +164,23 @@ void HariMain(void)
 					}
 					sheet_refresh(sht_win, 0, 0, sht_win->bxsize, 21);
 					sheet_refresh(sht_cons, 0, 0, sht_cons->bxsize, 21);
+				}
+
+				// shiftキー
+				switch (i)
+				{
+						case 256 + 0x2a:
+						key_shift |= 1; // 左シフトON
+						break;
+					case 256 + 0x36:
+						key_shift |= 2; // 右シフトON
+						break;
+					case 256 + 0xaa:
+						key_shift &= ~1; // 左シフトOFF 
+						break;
+					case 256 + 0xb6:
+						key_shift &= ~2; // 右シフトOFF
+						break;
 				}
 
 				// カーソルの再表示
