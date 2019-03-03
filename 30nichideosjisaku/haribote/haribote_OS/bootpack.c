@@ -9,7 +9,7 @@ void HariMain(void)
 {
 	int fifobuf[128];	
 	char s[40], keybuf[32], mousebuf[128], timerbuf[8];
-	int mx, my, i, count10, cursor_x = 8, cursor_c = COL8_FFFFFF, task_b_esp;
+	int mx, my, i, count10, cursor_x = 8, cursor_c = -1, task_b_esp;
 	int key_to = 0, key_shift = 0, key_leds = (binfo->leds >> 4) & 7, key_caps = 0;
 	unsigned int memtotal, count =0;
 	MOUSE_DEC mdec;
@@ -164,19 +164,22 @@ void HariMain(void)
 						make_wtitle8(buf_cons, sht_cons->bxsize, "console", 1);
 						cursor_c = -1; // カーソルを消す
 						boxfill8(sht_win->buf, sht_win->bxsize, COL8_FFFFFF, cursor_x, 28, cursor_x + 7, 43);
+						fifo32_put((FIFO32 *)task_cons->fifo, 2); // コンソールのカーソルON
 					} else {
 						key_to = 0;
 						make_wtitle8(buf_win, sht_win->bxsize, "task_a", 1);
 						make_wtitle8(buf_cons, sht_cons->bxsize, "console", 0);	
-						cursor_c = COL8_000000; // カーソルを出す					
+						cursor_c = COL8_000000; // カーソルを出す
+						fifo32_put((FIFO32 *)task_cons->fifo, 3); // コンソールのカーソルOFF					
 					}
 					sheet_refresh(sht_win, 0, 0, sht_win->bxsize, 21);
 					sheet_refresh(sht_cons, 0, 0, sht_cons->bxsize, 21);
 				}
 
-				// shiftキー
+				
 				switch (i)
 				{
+					// shift key
 					case 256 + 0x2a:
 						key_shift |= 1; // 左シフトON
 						break;
@@ -195,6 +198,9 @@ void HariMain(void)
 						} else {
 							key_caps = 1;
 						}
+						break;
+					case 256 + 0x1c:
+						if(key_to != 0){ fifo32_put((FIFO32 *)task_cons->fifo ,10 +256); }
 						break;
 				}
 
@@ -358,7 +364,7 @@ void console_task(SHEET *sheet){
 	TIMER * timer;
 	TASK *task = task_now();
 
-	int i, fifobuf[128], cursor_x = 16, cursor_c = COL8_000000;
+	int i, fifobuf[128], cursor_x = 16, cursor_y = 28, cursor_c = -1;
 	char s[2];
 
 	fifo32_init((FIFO32 *)task->fifo, 128, fifobuf, task);
@@ -380,36 +386,63 @@ void console_task(SHEET *sheet){
 			if(i <= 1){
 				if(i != 0){
 					timer_init(timer, (FIFO32 *)task->fifo, 0); //次は0
-					cursor_c = COL8_FFFFFF;
+					if(cursor_c >= 0){
+						cursor_c = COL8_FFFFFF;
+					}
 				} else {
 					timer_init(timer, (FIFO32 *)task->fifo, 1); // 次は1
-					cursor_c = COL8_000000;
+					if(cursor_c >= 0){
+						cursor_c = COL8_000000;
+					}
 				}
 				timer_settime(timer, 50);
 			}
+			switch (i)
+			{
+				case 2:
+					cursor_c = COL8_FFFFFF;
+					break;
+			
+				case 3:
+					boxfill8(sheet->buf, sheet->bxsize, COL8_000000, cursor_x, 28, cursor_x + 7 ,43);
+					cursor_c = -1;
+					break;
+			}
 			if(256 <= i && i<=511){ // キーボードデータ (タスクA経由)
-				if(i == 8 +256){
-				
-					
-					// バックスペース
-					if(cursor_x > 16){
+
+				if(i == 8 +256){ // バックスペース
+					if(cursor_x > 16){ 
 						// カーソルをスペースで消してからカーソルを一つ戻す
-						putfonts8_asc_sht(sheet, cursor_x, 28, COL8_FFFFFF, COL8_000000, "", 1);
+						putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, "", 1);
 						cursor_x -= 8;
-					} 
+					} else if(cursor_x == 16){
+						// ">"だけにする
+						putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, " ", 1);
+					}
+				} else if(i == 10 + 256){ //enter
+					if(cursor_y < 28 +112){
+						// カーソルをスペースで消す
+						putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, " ", 1);
+						cursor_y += 16;
+						// プロンプト表示
+						putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, ">", 1);
+						cursor_x = 16;
+					}
 				} else {
 					// 一般文字
 					if(cursor_x < 240){
 						// 一文字表示してからカーソルを一つ進める
 						s[0] = i - 256;
 						s[1] = 0;
-						putfonts8_asc_sht(sheet, cursor_x, 28, COL8_FFFFFF, COL8_000000, s, 1);
+						putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, s, 1);
 						cursor_x += 8;
 						}
 				}
 			}
 			// カーソル再表示
-			boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+			if(cursor_c >= 0){
+					boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, cursor_y, cursor_x + 7, cursor_y + 15);
+			}
 			sheet_refresh(sheet, cursor_x, 28, cursor_x + 8, 44);
 		}
 	}
