@@ -259,11 +259,12 @@ void inthandler20(int *esp);
 void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char act);
 void make_textbox8(SHEET *sht, int x0, int y0, int sx, int sy, int c);
 void putfonts8_asc_sht(SHEET *sht, int x, int y, int c, int b, char *s, int l);
-void set490(FIFO32 *fifo, int mode);
 void task_b_main(SHEET *sht);
 void console_task(SHEET *sheet, unsigned int memtotal);
 int cons_newline(int cursor_y, SHEET *sheet);
 void make_wtitle8(unsigned char *buf, int xsize, char *title, char act);
+void file_readfat(int *fat, unsigned char *img);
+void file_loadfile(int clustno, int size, char *buf, int *fat, char *img);
 typedef struct 
 {
 	unsigned char name[8], ext[3], type;
