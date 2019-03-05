@@ -14,6 +14,7 @@ void console_task(SHEET *sheet, unsigned int memtotal){
 	cons.cur_x = 8;
 	cons.cur_y = 28;
 	cons.cur_c = -1;
+	*((int*)0x0fec) = (int) &cons;
 
 	fifo32_init((FIFO32 *)task->fifo, 128, fifobuf, task);
 	timer = timer_alloc();
@@ -65,10 +66,10 @@ void console_task(SHEET *sheet, unsigned int memtotal){
 						// カーソルをスペースで消してからカーソルを一つ戻す
 						cons_putchar(&cons, ' ', 0);
 						cons.cur_x -= 8;
-					} else if(cons.cur_x == 16){
+					} /*else if(cons.cur_x == 16){
 						// ">"だけにする
 						cons_putchar(&cons, ' ', 0);
-					}
+					}*/
 				} else if(i == 10 + 256){ //enter
 				
 					// カーソルをスペースで消す
@@ -91,7 +92,7 @@ void console_task(SHEET *sheet, unsigned int memtotal){
 			if(cons.cur_c >= 0){
 					boxfill8(sheet->buf, sheet->bxsize, cons.cur_c, cons.cur_x, cons.cur_y, cons.cur_x + 7, cons.cur_y + 15);
 			}
-			sheet_refresh(sheet, cons.cur_x, 28, cons.cur_x + 8, 44);
+			sheet_refresh(sheet, cons.cur_x, cons.cur_y, cons.cur_x + 8, cons.cur_y+16);
 		}
 	}
 }
@@ -107,7 +108,7 @@ void cons_newline(CONSOLE *cons){
 				sheet->buf[x + y*sheet->bxsize] = sheet->buf[x + (y+16)*sheet->bxsize];
 			}
 		}
-		for(y = 28 + 112; y<28 +112; y++){
+		for(y = 28 + 112; y<28 +128; y++){
 			for(x = 8; x< 8 +240;x++){
 				sheet->buf[x + y*sheet->bxsize] = COL8_000000;
 			}
@@ -199,8 +200,8 @@ void cmd_hlt(CONSOLE *cons, int *fat){
 		// ファイルが見つかった
 		p = (char *)memman_alloc_4k(memman, finfo->size);
 		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *)(ADR_DISKIMG + 0x003e00));
-		set_gatedesc(gdt + 1003, finfo->size -1, (int)p, AR_CODE32_ER);
-		farjmp(0, 1003*8);
+		set_segmdesc(gdt + 1003, finfo->size -1, (int)p, AR_CODE32_ER);
+		farcall(0, 1003*8);
 		memman_free_4k(memman, (int)p, finfo->size);
 	} else {
 		// ファイルが見つからなかった

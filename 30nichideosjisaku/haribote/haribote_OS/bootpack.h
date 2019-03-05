@@ -49,6 +49,7 @@ void farjmp(int eip, int cs);
 
 int load_cr0(void);
 void store_cr0(int cr0);
+void farcall(int eip, int cs);
 
 /* graphic.c */
 void init_palette(void);

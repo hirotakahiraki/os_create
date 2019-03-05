@@ -10,7 +10,6 @@
 		GLOBAL 	_io_in8, _io_in16, _io_in32
 		GLOBAL	_io_out8, _io_out16, _io_out32
 		GLOBAL	_io_load_eflags, _io_store_eflags
-		GLOBAL  _write_mem8
 		GLOBAL	_load_gdtr, _load_idtr
 		GLOBAL 	_asm_inthandler21, _asm_inthandler27, _asm_inthandler2c, _asm_inthandler20
 		EXTERN	_inthandler21, _inthandler27, _inthandler2c, _inthandler20
@@ -18,6 +17,9 @@
 		GLOBAL  _memtest_sub
 		GLOBAL	_load_tr
 		GLOBAL	_farjmp
+		GLOBAL	_asm_cons_putchar
+		EXTERN	_cons_putchar
+		GLOBAL	_farcall
 
 
 [SECTION .text]
@@ -85,12 +87,6 @@ _io_store_eflags:	; void io_store_eflags(int eflags);
 		POPFD		;pop eflags
 		RET
 		
-_write_mem8:	; void write_mem8(int addr, int data);
-		MOV		ECX,[ESP+4]		; [ESP+4]��addr�������Ă���̂ł����ECX�ɓǂݍ���
-		MOV		AL,[ESP+8]		; [ESP+8]��data�������Ă���̂ł����AL�ɓǂݍ���
-		MOV		[ECX],AL
-		RET
-
 _load_gdtr:		; void load_gdtr(int limit, int addr);
 		MOV		AX,[ESP+4]		;limit
 		MOV		[ESP+6],AX
@@ -216,3 +212,16 @@ _load_tr:		; void load_tr(int tr);
 _farjmp:		; void farjmp(int eip, int cs);
 		JMP		FAR [ESP+4]	;eip, cs
 		RET
+
+_farcall:		; void farcall(int eip, int cs);
+		CALL	FAR [ESP+4]
+		RET
+		
+_asm_cons_putchar:
+		PUSH	1
+		AND		EAX,0xff ;AHやEAXの上位を0にして、EAXに文字コードが入った状態にする
+		PUSH	EAX
+		PUSH	DWORD [0x0fec]	;(consの番地)
+		CALL	_cons_putchar
+		ADD		ESP,12	;スタックに入ったデータを捨てる
+		RETF

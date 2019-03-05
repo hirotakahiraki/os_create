@@ -1,7 +1,7 @@
 ; haribote-os boot asm
 ; TAB=4
 
-;[INSTRSET "i486p"]
+[INSTRSET "i486p"]
 
 VBEMODE EQU		0x105
 	;0x101  640* 480  
@@ -28,7 +28,7 @@ VRAM	EQU		0x0ff8			; グラフィックバッファの開始番地
 		MOV		ES,AX
 		MOV		DI,0
 		MOV		AX,0x4f00
-		MOV		0x10
+		INT		0x10
 		CMP		AX,0x004f
 		JNE		scrn320
 
@@ -45,7 +45,7 @@ VRAM	EQU		0x0ff8			; グラフィックバッファの開始番地
 		JNE		scrn320
 
 ;画面モード情報の確認
-		CMP 	BYTE [ES:DI+0x19],8
+		CMP		BYTE [ES:DI+0x19],8
 		JNE		scrn320
 		CMP		BYTE [ES:DI+0x1b],4
 		JNE		scrn320
@@ -56,7 +56,7 @@ VRAM	EQU		0x0ff8			; グラフィックバッファの開始番地
 ; 画面モードの切り替え
 		MOV		BX,VBEMODE+0x4000
 		MOV		AX,0x4f02
-		INT 	0x10
+		INT		0x10
 		MOV		BYTE [VMODE],8
 		MOV		AX,[ES:DI+0x12]
 		MOV		[SCRNX],AX
@@ -67,22 +67,20 @@ VRAM	EQU		0x0ff8			; グラフィックバッファの開始番地
 		JMP		keystatus
 
 scrn320:
-		;最小値 >> MOV		AL,0x13  MOV		AH,0x00
-		MOV		BX,0x4103
-		MOV 	AX,0x4f02
+		MOV		AL,0x13			; VGA�O���t�B�b�N�X�A320x200x8bit�J���[
+		MOV		AH,0x00
 		INT		0x10
-		MOV		BYTE [VMODE],8
-		MOV		WORD [SCRNX],800
-		MOV		WORD [SCRNY],600
-		MOV		DWORD [VRAM],0xfd000000
-	
+		MOV		BYTE [VMODE],8	; ��ʃ��[�h����������iC���ꂪ�Q�Ƃ���j
+		MOV		WORD [SCRNX],320
+		MOV		WORD [SCRNY],200
+		MOV		DWORD [VRAM],0x000a0000
+
 keystatus:
 		MOV		AH,0x02
-		INT 	0x16	;keyboard BIOS
+		INT		0x16	;keyboard BIOS
 		MOV		[LEDS],AL
-
-
-; 	PICが一切の割り込みを受けつけないようにする。
+		
+;	PICが一切の割り込みを受けつけないようにする。
 ;	AT互換機の仕様では,PICの初期化をするなら、
 ;	こいつをCLI前にやっておかないとたまにハングアップする。
 ;	PICの初期化は後でやる。
@@ -106,7 +104,7 @@ keystatus:
 
 ; プロテクトモード移行
 
-[INSTRSET "i486p"]				; 486の命令まで使いたいという記述
+;[INSTRSET "i486p"]				; 486の命令まで使いたいという記述
 
 		LGDT	[GDTR0]			; 暫定GDTを設定
 		MOV		EAX,CR0
@@ -114,7 +112,6 @@ keystatus:
 		OR		EAX,0x00000001	; bit0を1にする(プロテクトモード禁止のため)
 		MOV		CR0,EAX
 		JMP		pipelineflush
-
 pipelineflush:
 		MOV		AX,1*8			;  読み書き可能セグメント32bit
 		MOV		DS,AX
@@ -134,8 +131,8 @@ pipelineflush:
 
 ; まずはブートセクタから
 
-		MOV		ESI,0x7c00		; 転送元
-		MOV		EDI,DSKCAC		; 転送先
+		MOV		ESI,0x7c00		; �]����
+		MOV		EDI,DSKCAC		; �]����
 		MOV		ECX,512/4
 		CALL	memcpy
 
@@ -170,7 +167,7 @@ skip:
 waitkbdout:
 		IN		 AL,0x64
 		AND		 AL,0x02
-		IN 		 AL,0x60		; から読み(受信バッファが悪さをしないように)
+		IN		 AL,0x60		; から読み(受信バッファが悪さをしないように)
 		JNZ		waitkbdout		; ANDの結果が0でなければwaitbdoutへ
 		RET
 
