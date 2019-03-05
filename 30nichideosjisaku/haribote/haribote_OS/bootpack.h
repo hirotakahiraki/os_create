@@ -260,8 +260,6 @@ void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char ac
 void make_textbox8(SHEET *sht, int x0, int y0, int sx, int sy, int c);
 void putfonts8_asc_sht(SHEET *sht, int x, int y, int c, int b, char *s, int l);
 void task_b_main(SHEET *sht);
-void console_task(SHEET *sheet, unsigned int memtotal);
-int cons_newline(int cursor_y, SHEET *sheet);
 void make_wtitle8(unsigned char *buf, int xsize, char *title, char act);
 void file_readfat(int *fat, unsigned char *img);
 void file_loadfile(int clustno, int size, char *buf, int *fat, char *img);
@@ -271,7 +269,7 @@ typedef struct
 	char reserve[10];
 	unsigned short time, data, clustno;
 	unsigned int size;
-}FIFOINFO;
+}FILEINFO;
 
 static char keytable0[0x80]={
 	 0,   0,  '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0, 0,  //16
@@ -318,3 +316,20 @@ void task_add(TASK *task);
 void task_remove(TASK *task);
 void task_switchsub(void);
 void task_idle(void);
+
+/* console.c */
+typedef struct {
+	SHEET *sht;
+	int cur_x, cur_y, cur_c;
+}CONSOLE;
+void console_task(SHEET *sheet, unsigned int memtotal);
+void cons_newline(CONSOLE *cons);
+void cons_putchar(CONSOLE *cons, int chr, char move);
+void cons_runcmd(char *cmdline, CONSOLE *cons, int *fat, unsigned int memtotal);
+void cmd_mem(CONSOLE *cons, unsigned int memtotal);
+void cmd_cls(CONSOLE *cons);
+void cmd_ls(CONSOLE *cons);
+void cmd_cat(CONSOLE *cons, int *fat, char *cmdline);
+void cmd_hlt(CONSOLE *cons, int *fat);
+void cons_runcmd(char* cmdline, CONSOLE *cons, int *fat, unsigned int memtotal);
+FILEINFO *file_search(char *name, FILEINFO *finfo, int max);
