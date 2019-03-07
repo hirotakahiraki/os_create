@@ -122,14 +122,9 @@ void cons_newline(CONSOLE *cons){
 
 void cmd_mem(CONSOLE *cons, unsigned int memtotal){
 	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
-	char s[30];
-	sprintf(s, "total	%dMB",memtotal/(1024*1024));
-	putfonts8_asc_sht(cons->sht, 8, cons->cur_y, COL8_FFFFFF, COL8_000000, s, 30);
-	cons_newline(cons);
-	sprintf(s, "free %dKB", memman_total(memman)/1024);
-	putfonts8_asc_sht(cons->sht, 8, cons->cur_y, COL8_FFFFFF, COL8_000000, s, 30);
-	cons_newline(cons);
-	cons_newline(cons);
+	char s[60];
+	sprintf(s, "total	%dMB\nfree %dKB\n\n",memtotal/(1024*1024), memman_total(memman)/1024);
+	cons_putstr0(cons, s);
 	return;
 }
 
@@ -155,18 +150,19 @@ void cmd_ls(CONSOLE *cons){
 		}
 		if(finfo[x].name[0] != 0xe5){
 			if((finfo[x].type & 0x18) == 0){
-				sprintf(s, "filename.ext	%7d", finfo[x].size);
+				sprintf(s, "filename.ext	%7d\n", finfo[x].size);
 				for(y = 0 ;y < 8; y++){
 					s[y] = finfo[x].name[y];
 				}
 				s[ 9] = finfo[x].ext[0];
 				s[10] = finfo[x].ext[1];
 				s[11] = finfo[x].ext[2];
-				putfonts8_asc_sht(cons->sht, 8, cons->cur_y, COL8_FFFFFF, COL8_000000, s, 30);
-				cons_newline(cons);
+				cons_putstr0(cons, s);
 			}
 		}
 	}
+	cons_newline(cons);
+	return;
 }
 
 void cmd_cat(CONSOLE *cons, int *fat, char *cmdline){
@@ -178,14 +174,11 @@ void cmd_cat(CONSOLE *cons, int *fat, char *cmdline){
 		// ファイルが見つかった
 		p = (char *)memman_alloc_4k(memman, finfo->size);
 		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *)(ADR_DISKIMG + 0x003e00));
-		for(i = 0; i<finfo->size ;i++){
-			cons_putchar(cons, p[i], 1);
-		}
+		cons_putstr1(cons, p, finfo->size);
 		memman_free_4k(memman, (int)p, finfo->size);
 	} else {
 		// ファイルが見つからない
-		putfonts8_asc_sht(cons->sht, 8, cons->cur_y, COL8_FFFFFF, COL8_000000, "File not Found.", 15);
-		cons_newline(cons);
+		cons_putstr0(cons,"File not Found.\n");
 	}
 	cons_newline(cons);
 	return;
@@ -250,11 +243,11 @@ void cons_putchar(CONSOLE *cons, int chr, char move){
 	else if(strncmp(cmdline, "cat ", 4) == 0){	cmd_cat(cons, fat, cmdline);}
 	else if(strcmp(cmdline, "hlt") == 0){	cmd_hlt(cons, fat);}
 	else if(cmdline[0] != 0){
-		if(cmd_app(cons,fat,cmdline) == 0)
+		if(cmd_app(cons,fat,cmdline) == 0){
 		// コマンドではなくアプリでなく空行でない
-		putfonts8_asc_sht(cons->sht, 8, cons->cur_y, COL8_FFFFFF, COL8_000000, "Bad Command", 12);
-		cons_newline(cons);
-		cons_newline(cons);
+		//putfonts8_asc_sht(cons->sht, 8, cons->cur_y, COL8_FFFFFF, COL8_000000, "Bad Command", 12);
+		cons_putstr0(cons, "Bad Command.\n\n");
+		}
 	}
 	return;
 }
@@ -298,4 +291,31 @@ int cmd_app(CONSOLE *cons,  int *fat, char *cmdline){
 		return 1;
 	}
 	return 0;
+}
+
+void cons_putstr0(CONSOLE *cons, char *s){
+	for(; *s != 0;s++){
+		cons_putchar(cons, *s, 1);
+	}
+	return;
+}
+
+void cons_putstr1(CONSOLE *cons, char *s, int l){
+	int i;
+	for(i=0;i<l;i++){
+		cons_putchar(cons, s[i], 1);
+	}
+	return;
+}
+
+void hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax){
+	CONSOLE *cons = (CONSOLE *) *((int *) 0x0fec);
+	if(edx ==1){
+		cons_putchar(cons, eax&0xff, 1);
+	} else if(edx == 2){
+		cons_putstr0(cons, (char *)ebx);
+	} else if(edx == 3){
+		cons_putstr1(cons, (char *)ebx, ecx);
+	}
+	return;
 }

@@ -51,6 +51,7 @@ int load_cr0(void);
 void store_cr0(int cr0);
 void farcall(int eip, int cs);
 void asm_cons_putchar(void);
+void asm_hrb_api(void);
 
 /* graphic.c */
 void init_palette(void);
@@ -335,4 +336,7 @@ void cmd_cat(CONSOLE *cons, int *fat, char *cmdline);
 void cmd_hlt(CONSOLE *cons, int *fat);
 void cons_runcmd(char* cmdline, CONSOLE *cons, int *fat, unsigned int memtotal);
 int cmd_app(CONSOLE *cons,  int *fat, char *cmdline);
+void cons_putstr0(CONSOLE *cons, char *s);
+void cons_putstr1(CONSOLE *cons, char *s, int l);
+void hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
 FILEINFO *file_search(char *name, FILEINFO *finfo, int max);

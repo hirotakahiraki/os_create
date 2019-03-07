@@ -20,7 +20,8 @@
 		GLOBAL	_asm_cons_putchar
 		EXTERN	_cons_putchar
 		GLOBAL	_farcall
-
+		GLOBAL	_asm_hrb_api
+		EXTERN _hrb_api
 
 [SECTION .text]
 
@@ -226,5 +227,14 @@ _asm_cons_putchar:
 		PUSH	DWORD [0x0fec]	;(consの番地)
 		CALL	_cons_putchar
 		ADD		ESP,12	;スタックに入ったデータを捨てる
+		POPAD
+		IRETD
+
+_asm_hrb_api:
+		STI
+		PUSHAD	; 保存用push
+		PUSHAD	; hrb_apiに渡すpush
+		CALL	_hrb_api
+		ADD		ESP,32
 		POPAD
 		IRETD
