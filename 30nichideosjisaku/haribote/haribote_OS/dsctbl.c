@@ -7,7 +7,7 @@ void init_gdtidt(){
 
 	/* GDTの初期化 */
 	for(i=0; i<8192; i++){
-		set_gatedesc(gdt + i, 0, 0, 0);
+		set_segmdesc(gdt + i, 0, 0, 0);
 	} 
 	set_segmdesc(gdt + 1, 0xffffffff, 0x00000000, AR_DATA32_RW);
 	set_segmdesc(gdt + 2, LIMIT_BOTPAK, ADR_BOTPAK, AR_CODE32_ER);
@@ -17,13 +17,15 @@ void init_gdtidt(){
 	for(i =0; i< 256; i++){
 		set_gatedesc(idt + i, 0, 0, 0);
 	}
+	load_idtr(0x7ff, ADR_IDT);
+	
 	set_gatedesc(idt + 0x20, (int) asm_inthandler20, 2*8, AR_INTGATE32);
     set_gatedesc(idt + 0x21, (int) asm_inthandler21, 2*8, AR_INTGATE32);
     set_gatedesc(idt + 0x27, (int) asm_inthandler27, 2*8, AR_INTGATE32);
     set_gatedesc(idt + 0x2c, (int) asm_inthandler2c, 2*8, AR_INTGATE32);
 	set_gatedesc(idt + 0x40, (int) asm_cons_putchar, 2*8, AR_INTGATE32);
     
-	load_idtr(0x7ff, ADR_IDT);
+
 	return ;
 }
 

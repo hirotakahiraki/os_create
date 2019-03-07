@@ -7,14 +7,14 @@
 [FILE "naskfunc.nas"]			; �\�[�X�t�@�C�������
 
 		GLOBAL	_io_hlt, _io_cli, _io_sti, _io_stihlt
-		GLOBAL 	_io_in8, _io_in16, _io_in32
+		GLOBAL	_io_in8, _io_in16, _io_in32
 		GLOBAL	_io_out8, _io_out16, _io_out32
 		GLOBAL	_io_load_eflags, _io_store_eflags
 		GLOBAL	_load_gdtr, _load_idtr
-		GLOBAL 	_asm_inthandler21, _asm_inthandler27, _asm_inthandler2c, _asm_inthandler20
+		GLOBAL	_asm_inthandler21, _asm_inthandler27, _asm_inthandler2c, _asm_inthandler20
 		EXTERN	_inthandler21, _inthandler27, _inthandler2c, _inthandler20
-		GLOBAL  _load_cr0, _store_cr0
-		GLOBAL  _memtest_sub
+		GLOBAL	_load_cr0, _store_cr0
+		GLOBAL	_memtest_sub
 		GLOBAL	_load_tr
 		GLOBAL	_farjmp
 		GLOBAL	_asm_cons_putchar
@@ -100,8 +100,8 @@ _load_idtr:		; void load_idtr(int limit, int addr);
 		RET
 
 _asm_inthandler21:		; void asm_inthandler21();
-		PUSH 	ES
-		PUSH 	DS
+		PUSH	ES
+		PUSH	DS
 		PUSHAD
 		MOV		EAX,ESP
 		PUSH	EAX
@@ -116,8 +116,8 @@ _asm_inthandler21:		; void asm_inthandler21();
 		IRETD
 
 _asm_inthandler27:		; void asm_inthandler27();
-		PUSH 	ES
-		PUSH 	DS
+		PUSH	ES
+		PUSH	DS
 		PUSHAD
 		MOV		EAX,ESP
 		PUSH	EAX
@@ -132,8 +132,8 @@ _asm_inthandler27:		; void asm_inthandler27();
 		IRETD
 
 _asm_inthandler2c:		; void asm_inthandler2c();
-		PUSH 	ES
-		PUSH 	DS
+		PUSH	ES
+		PUSH	DS
 		PUSHAD
 		MOV		EAX,ESP
 		PUSH	EAX
@@ -162,13 +162,13 @@ _memtest_sub:		; unsigned int memtest_sub(unsigned int start, unsigned int end);
 		PUSH	EBX
 		MOV		ESI, 0xaa55aa55			; pat0 = 0xaa55aa55
 		MOV		EDI, 0x55aa55aa			; pat1 = 0x55aa55aa
-		MOV		EAX, [ESP+12+4] 		; i = start;
+		MOV		EAX, [ESP+12+4]			; i = start;
 mts_loop:
 		MOV		EBX,EAX	
 		ADD		EBX,0xffc				; p = i + 0xffc;
 		MOV		EDX,[EBX]				; old = *p;
 		MOV		[EBX],ESI				; *p = pat0;
-		XOR 	DWORD [EBX], 0xffffffff	; *p ^= 0xffffffff;
+		XOR		DWORD [EBX], 0xffffffff	; *p ^= 0xffffffff;
 		CMP		EDI, [EBX]				; if(*p != pat1) goto fin;
 		JNE		mts_fin					
 		XOR		DWORD [EBX], 0xffffffff	; *p ^= 0xffffffff;
@@ -183,7 +183,7 @@ mts_loop:
 		POP		EDI
 		RET
 mts_fin:
-		MOV [EBX],EDX
+		MOV		[EBX],EDX
 		POP		EBX
 		POP		ESI
 		POP		EDI
@@ -219,10 +219,12 @@ _farcall:		; void farcall(int eip, int cs);
 		
 _asm_cons_putchar:
 		STI
+		PUSHAD
 		PUSH	1
 		AND		EAX,0xff ;AHやEAXの上位を0にして、EAXに文字コードが入った状態にする
 		PUSH	EAX
 		PUSH	DWORD [0x0fec]	;(consの番地)
 		CALL	_cons_putchar
 		ADD		ESP,12	;スタックに入ったデータを捨てる
+		POPAD
 		IRETD

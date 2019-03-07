@@ -60,7 +60,7 @@ void make_wtitle8(unsigned char *buf, int xsize, char *title, char act){
 		tc = COL8_C6C6C6;
 		tbc = COL8_848484;
 	}
-	boxfill8(buf, xsize, COL8_000084, 3, 3, xsize -4, 20);
+	boxfill8(buf, xsize, tbc, 3, 3, xsize -4, 20);
 	putfonts8_asc(buf, xsize, 24, 4, tc, title);
 	for(y=0; y <14; y++){
 		for(x =0 ; x<16; x++){

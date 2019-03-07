@@ -16,7 +16,7 @@ SHTCTL *shtctl_init(MEMMAN *memman, unsigned char *vram, int xsize, int ysize){
     ctl->vram = vram;
     ctl->xsize = xsize;
     ctl->ysize = ysize;
-    ctl->top = 1; /* sheetは1枚もない */
+    ctl->top = -1; /* sheetは1枚もない */
     for(i =0; i<MAX_SHEETS; i++){
         ctl->sheets0[i].flags = 0; /* 未使用マーク */
         ctl->sheets0[i].ctl = (struct SHTCTL *)ctl;
@@ -143,7 +143,7 @@ void sheet_refreshsub(SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0, i
     if(vy0 < 0){ vy0 = 0;}
     if(vx1 > ctl->xsize){ vx1 = ctl->xsize;}
     if(vy1 > ctl->ysize){ vy1 = ctl->ysize;}
-    for(h=h0;h <= ctl->top;h++){
+    for(h=h0;h <= h1;h++){
         sht = ctl->sheets[h];
         buf = sht->buf;
         sid = sht - ctl->sheets0;

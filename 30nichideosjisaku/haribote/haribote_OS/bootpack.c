@@ -2,13 +2,13 @@
 #include <string.h>
 #include "bootpack.h"
 
-FIFO32 fifo;
+FIFO32 fifo,keycmd;
 extern TIMERCTL timerctl;
 BOOTINFO *binfo= (BOOTINFO *) ADR_BOOTINFO;
 TSS32 tss_a, tss_b;
 void HariMain(void)
 {
-	int fifobuf[128];	
+	int fifobuf[128], keycmd_buf[32];	
 	char s[40], keybuf[32], mousebuf[128], timerbuf[8];
 	int mx, my, i, count10, cursor_x = 8, cursor_c = -1, task_b_esp;
 	int key_to = 0, key_shift = 0, key_leds = (binfo->leds >> 4) & 7, key_caps = 0;
@@ -27,11 +27,11 @@ void HariMain(void)
 
 	fifo32_init(&fifo, 128, fifobuf, 0);
 	init_pit();
+	init_keyboard(&fifo, 256);
+	enable_mouse(&fifo, 512, &mdec);
 	io_out8(PIC0_IMR, 0xf8); /* PIT, PIC1, キーボードを初期化 */
 	io_out8(PIC1_IMR, 0xef);
 
-	init_keyboard(&fifo, 256);
-	enable_mouse(&fifo, 512, &mdec);
 	memtotal = memtest(0x00400000,0xbfffffff);
 	memman_init(memman);
 	memman_free(memman, 0x00001000, 0x0009e000); // 0x00001000 - 0x0009efff 
@@ -65,11 +65,10 @@ void HariMain(void)
 	task_cons->tss.ds = 1*8;
 	task_cons->tss.fs = 1*8;
 	task_cons->tss.gs = 1*8;
-	*((int *)(task_cons->tss.esp + 4)) = (int)sht_cons;
-	task_run(task_cons, 2, 2);  // level = 2, priority = 2
 	*((int*) (task_cons->tss.esp + 4)) = (int) sht_cons;
 	*((int*) (task_cons->tss.esp + 8)) = memtotal;
-   
+   	task_run(task_cons, 2, 2);  // level = 2, priority = 2
+
 	// sht_win
 	sht_win = sheet_alloc(shtctl);
 	buf_win = (unsigned char *) memman_alloc_4k(memman, 160 * 52);
@@ -145,7 +144,7 @@ void HariMain(void)
 					if(key_to == 0){ // task Aへ
 						if(cursor_x > 8){
 							// カーソルをスペースで消してカーソルを一つ戻す
-							putfonts8_asc_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, "", 1);
+							putfonts8_asc_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, " ", 1);
 							cursor_x -= 8;
 						}
 					} else {
@@ -189,14 +188,14 @@ void HariMain(void)
 					case 256 + 0xb6:
 						key_shift &= ~2; // 右シフトOFF
 						break;
-					case 256 + 0xba:
+					case 256 + 0xba: // caps lock
 						if(key_caps != 0){
 							key_caps = 0;
 						} else {
 							key_caps = 1;
 						}
 						break;
-					case 256 + 0x1c:
+					case 256 + 0x1c: // enter
 						if(key_to != 0){ fifo32_put((FIFO32 *)task_cons->fifo ,10 +256); }
 						break;
 				}
@@ -238,23 +237,36 @@ void HariMain(void)
 				{
 					case 0: // カーソルタイマ
 						timer_init(timer, &fifo, 1); // 次は1 
-						timer_settime(timer, 50);
 						if(cursor_c >=0){
 							cursor_c = COL8_FFFFFF;
+						}
+						timer_settime(timer, 50);
+						if(cursor_c >=0){
 							boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);					
 							sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
 						}
 						break;
 					case 1: // カーソルタイマ
 						timer_init(timer, &fifo, 0);
-						timer_settime(timer, 50);
 						if(cursor_c >=0){
 							cursor_c = COL8_000000;
+						}
+						timer_settime(timer, 50);
+						if(cursor_c >=0){
 							boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);					
 							sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
 						}
 						break;
 				}
+				
+				char *s1;
+				if(cursor_c ==COL8_000000){
+					 s1="B";
+				} else if(cursor_c == COL8_FFFFFF){
+					s1 ="W";
+				}
+				// refreshが必要
+				putfonts8_asc_sht(sht_back,0,100,COL8_FFFFFF, COL8_008484, s1, 2);
 		}
 	}
 }

@@ -17,7 +17,6 @@ void init_pit(void){
     t->next = 0;
     timerctl.t0 = t;
     timerctl.next = 0xffffffff;
-    timerctl.using = 1;
     return;
 }
 
@@ -50,12 +49,11 @@ void timer_settime(TIMER *timer, unsigned int timeout){
     timer->flags = TIMER_FLAGS_USING;
     e = io_load_eflags();
     io_cli();
-    timerctl.using +=1;
     t = timerctl.t0;
     if(timer->timeout <= t->timeout){
         // 先頭に入れる場合
         timerctl.t0 = timer;
-        timer->next = t;
+        timer->next = (struct TIMER*)t;
         timerctl.next = timer->timeout;
         io_store_eflags(e);
         return;
@@ -64,13 +62,10 @@ void timer_settime(TIMER *timer, unsigned int timeout){
     for(;;){
         s = t;
         t =(TIMER*)t->next;
-        if(t == 0){
-            break;
-        }
         if(timer->timeout <= t->timeout){
             // sとtの間に入れる場合
             s->next = (struct TIMER *)timer;
-            timer->next = t;
+            timer->next = (struct TIMER *)t;
             io_store_eflags(e);
             return;
         }
