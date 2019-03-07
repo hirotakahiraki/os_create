@@ -334,4 +334,5 @@ void cmd_ls(CONSOLE *cons);
 void cmd_cat(CONSOLE *cons, int *fat, char *cmdline);
 void cmd_hlt(CONSOLE *cons, int *fat);
 void cons_runcmd(char* cmdline, CONSOLE *cons, int *fat, unsigned int memtotal);
+int cmd_app(CONSOLE *cons,  int *fat, char *cmdline);
 FILEINFO *file_search(char *name, FILEINFO *finfo, int max);

@@ -250,10 +250,52 @@ void cons_putchar(CONSOLE *cons, int chr, char move){
 	else if(strncmp(cmdline, "cat ", 4) == 0){	cmd_cat(cons, fat, cmdline);}
 	else if(strcmp(cmdline, "hlt") == 0){	cmd_hlt(cons, fat);}
 	else if(cmdline[0] != 0){
-		// コマンドではなく空行でない
+		if(cmd_app(cons,fat,cmdline) == 0)
+		// コマンドではなくアプリでなく空行でない
 		putfonts8_asc_sht(cons->sht, 8, cons->cur_y, COL8_FFFFFF, COL8_000000, "Bad Command", 12);
 		cons_newline(cons);
 		cons_newline(cons);
 	}
 	return;
+}
+
+int cmd_app(CONSOLE *cons,  int *fat, char *cmdline){
+	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
+	FILEINFO *finfo;
+	SEGMENT_DISCRIPTOR *gdt = (SEGMENT_DISCRIPTOR *) ADR_GDT;
+	char name[18], *p;
+	int i;
+
+	// コマンドラインからファイル名を生成
+	for(i=0; i<13; i++){
+		if(cmdline[i] <= ' '){
+			break;
+		}
+		name[i] = cmdline[i];
+	}
+	name[i] = 0; // ファイル名の後ろを0にする
+
+	// ファイルを探す
+	finfo = file_search(name, (FILEINFO *)(ADR_DISKIMG + 0x002600), 224);
+	if(finfo == 0 && name[i-1] != '.'){
+		// 見つからなかったので後ろに".HRB"をつけてもう一度探す
+		name[i] = '.';
+		name[i+1] = 'H';
+		name[i+2] = 'R';
+		name[i+3] = 'B';
+		name[i+4] = 0;
+		finfo = file_search(name,(FILEINFO *)(ADR_DISKIMG + 0x002600), 224);
+	}
+
+	if(finfo != 0){
+		// ファイルが見つかった場合
+		p = (char *)memman_alloc_4k(memman, finfo->size);
+		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *) (ADR_DISKIMG + 0x003e00));
+		set_segmdesc(gdt +1003, finfo->size - 1, (int)p, AR_CODE32_ER);
+		farcall(0,1003*8);
+		memman_free_4k(memman, (int)p, finfo->size);
+		cons_newline(cons);
+		return 1;
+	}
+	return 0;
 }
