@@ -218,10 +218,11 @@ _farcall:		; void farcall(int eip, int cs);
 		RET
 		
 _asm_cons_putchar:
+		STI
 		PUSH	1
 		AND		EAX,0xff ;AHやEAXの上位を0にして、EAXに文字コードが入った状態にする
 		PUSH	EAX
 		PUSH	DWORD [0x0fec]	;(consの番地)
 		CALL	_cons_putchar
 		ADD		ESP,12	;スタックに入ったデータを捨てる
-		RETF
+		IRETD
