@@ -5,4 +5,4 @@
     INT     0x40
     RETF
 msg:
-    DM      "hello",0
+    DB      "hello",0
