@@ -52,6 +52,7 @@ void store_cr0(int cr0);
 void farcall(int eip, int cs);
 void asm_cons_putchar(void);
 void asm_hrb_api(void);
+void start_app(int eip, int cs, int esp, int ds);
 
 /* graphic.c */
 void init_palette(void);
@@ -123,11 +124,19 @@ typedef struct
 	int es, cs, ss, ds, fs, gs;
 	int ldtr, iomap;
 }TSS32;
-typedef struct 
+
+typedef struct FIFO32_
+{
+	int *buf;
+	int p, q, size, free, flags;
+	struct TASK_ *task;
+}FIFO32;
+
+typedef struct TASK_
 {
 	int sel, flags; // selはGDTの番号
 	int level, priority;
-	struct FIFO32 *fifo;
+	struct FIFO32_ fifo;
 	TSS32 tss;
 }TASK;
 
@@ -138,21 +147,6 @@ typedef struct
 	TASK *tasks[MAX_TASKSLEVEL];
 }TASKLEVEL;
 
-typedef struct{
-	unsigned char *buf;
-	int p, q, size, free, flags;
-}FIFO8;
-typedef struct 
-{
-	int *buf;
-	int p, q, size, free, flags;
-	TASK *task;
-}FIFO32;
-
-void fifo8_init(FIFO8 *fifo, int size, unsigned char *buf);
-int fifo8_put(FIFO8 *fifo, unsigned char data);
-int fifo8_get(FIFO8 *fifo);
-int fifo8_status(FIFO8 *fifo);
 void fifo32_init(FIFO32 *fifo, int size, int *buf, TASK *task);
 int fifo32_put(FIFO32 *fifo, int data);
 int fifo32_get(FIFO32 *fifo);
@@ -247,6 +241,7 @@ typedef struct{
 	TIMER *t0;
 	TIMER timers0[MAX_TIMER]; 
 }TIMERCTL;
+extern TIMERCTL timerctl;
 void init_pit(void);
 TIMER *timer_alloc(void);
 void timer_free(TIMER *timer);
@@ -310,7 +305,7 @@ typedef struct
 	TASK tasks0[MAX_TASK];
 }TASKCTL;
 TASK *task_init(MEMMAN *memman);
-TASK *task_alloc(void);
+TASK *task_alloc();
 void task_run(TASK *task, int level, int priority);
 void task_switch();
 void task_sleep(TASK *task);

@@ -15,33 +15,32 @@ void console_task(SHEET *sheet, unsigned int memtotal){
 	cons.cur_y = 28;
 	cons.cur_c = -1;
 	*((int*)0x0fec) = (int) &cons;
-
-	fifo32_init((FIFO32 *)task->fifo, 128, fifobuf, task);
+	
+	fifo32_init(&task->fifo, 128, fifobuf, task);
 	timer = timer_alloc();
-	timer_init(timer, (FIFO32 *)task->fifo, 1);
+	timer_init(timer, &task->fifo, 1);
 	timer_settime(timer, 50);
 	file_readfat(fat, (unsigned char *) (ADR_DISKIMG + 0x000200));
-
+			
 	// プロンプト表示
 	cons_putchar(&cons, '>', 1);
-
 	for(;;){
 		io_cli();
-		if(fifo32_status((FIFO32 *)task->fifo) == 0){
+		if(fifo32_status(&task->fifo) == 0){
 			task_sleep(task);
 			io_sti();
 		} else { 
-			i = fifo32_get((FIFO32 *)task->fifo);
+			i = fifo32_get(&task->fifo);
 			io_sti();
 			// カーソル用タイマ
 			if(i <= 1){
 				if(i != 0){
-					timer_init(timer, (FIFO32 *)task->fifo, 0); //次は0
+					timer_init(timer, &task->fifo, 0); //次は0
 					if(cons.cur_c >= 0){
 						cons.cur_c = COL8_FFFFFF;
 					}
 				} else {
-					timer_init(timer, (FIFO32 *)task->fifo, 1); // 次は1
+					timer_init(timer, &task->fifo, 1); // 次は1
 					if(cons.cur_c >= 0){
 						cons.cur_c = COL8_000000;
 					}
@@ -256,7 +255,7 @@ int cmd_app(CONSOLE *cons,  int *fat, char *cmdline){
 	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
 	FILEINFO *finfo;
 	SEGMENT_DISCRIPTOR *gdt = (SEGMENT_DISCRIPTOR *) ADR_GDT;
-	char name[18], *p;
+	char name[18], *p, *q;
 	int i;
 
 	// コマンドラインからファイル名を生成
@@ -283,9 +282,11 @@ int cmd_app(CONSOLE *cons,  int *fat, char *cmdline){
 	if(finfo != 0){
 		// ファイルが見つかった場合
 		p = (char *)memman_alloc_4k(memman, finfo->size);
+		q = (char *)memman_alloc_4k(memman, 64*1024);
 		*((int *)0xfe8) = (int) p;
 		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *) (ADR_DISKIMG + 0x003e00));
 		set_segmdesc(gdt +1003, finfo->size - 1, (int)p, AR_CODE32_ER);
+		set_segmdesc(gdt +1004, 64*1024 - 1, (int)q, AR_DATA32_RW);
 		if(finfo->size >= 8 && strncmp(p+4, "Hari", 4) == 0){
 			p[0] = 0xe8;
 			p[1] = 0x16;
@@ -293,13 +294,14 @@ int cmd_app(CONSOLE *cons,  int *fat, char *cmdline){
 			p[3] = 0x00;
 			p[4] = 0x00;
 			p[5] = 0xcb;
-			
 		}
-		farcall(0,1003*8);
+		start_app(0, 1003*8, 64*1024, 1004*8);
 		memman_free_4k(memman, (int)p, finfo->size);
+		memman_free_4k(memman, (int)q, 64*1024);
 		cons_newline(cons);
 		return 1;
 	}
+	// ファイル無し
 	return 0;
 }
 

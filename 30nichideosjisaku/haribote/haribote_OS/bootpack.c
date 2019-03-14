@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "bootpack.h"
-
+SHEET *sht_debug, *sht_back;
 FIFO32 fifo,keycmd;
-extern TIMERCTL timerctl;
 BOOTINFO *binfo= (BOOTINFO *) ADR_BOOTINFO;
 TSS32 tss_a, tss_b;
 void HariMain(void)
@@ -16,11 +15,11 @@ void HariMain(void)
 	MOUSE_DEC mdec;
 	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
 	SHTCTL *shtctl;
-	SHEET *sht_back, *sht_mouse, *sht_win, *sht_cons;
+	SHEET *sht_mouse, *sht_win, *sht_cons;
 	TIMER *timer;
 	unsigned char *buf_back, buf_mouse[256], *buf_win, *buf_cons;
 	TASK *task_a, *task_cons;
-
+	sht_debug = sht_back;
 	init_gdtidt();
 	init_pic();
 	io_sti();
@@ -50,7 +49,6 @@ void HariMain(void)
 	init_screen(buf_back, binfo->scrnx, binfo->scrny);
 
 	// sht_cons
-
 	sht_cons = sheet_alloc(shtctl);
 	buf_cons = (unsigned char *) memman_alloc_4k(memman, 256*165);
 	sheet_setbuf(sht_cons, buf_cons, 256, 165, -1); //透明色なし
@@ -135,7 +133,7 @@ void HariMain(void)
 						cursor_x += 8;
 						} 
 					}else { // コンソールへ
-						fifo32_put((FIFO32 *)task_cons->fifo, s[0]+256);
+						fifo32_put(&task_cons->fifo, s[0]+256);
 					}
 				}
 
@@ -148,7 +146,7 @@ void HariMain(void)
 							cursor_x -= 8;
 						}
 					} else {
-						fifo32_put((FIFO32 *)task_cons->fifo, 8+256);
+						fifo32_put(&task_cons->fifo, 8+256);
 					}
 				}
 
@@ -160,13 +158,13 @@ void HariMain(void)
 						make_wtitle8(buf_cons, sht_cons->bxsize, "console", 1);
 						cursor_c = -1; // カーソルを消す
 						boxfill8(sht_win->buf, sht_win->bxsize, COL8_FFFFFF, cursor_x, 28, cursor_x + 7, 43);
-						fifo32_put((FIFO32 *)task_cons->fifo, 2); // コンソールのカーソルON
+						fifo32_put(&task_cons->fifo, 2);
 					} else {
 						key_to = 0;
 						make_wtitle8(buf_win, sht_win->bxsize, "task_a", 1);
 						make_wtitle8(buf_cons, sht_cons->bxsize, "console", 0);	
 						cursor_c = COL8_000000; // カーソルを出す
-						fifo32_put((FIFO32 *)task_cons->fifo, 3); // コンソールのカーソルOFF					
+						fifo32_put(&task_cons->fifo, 3); // コンソールのカーソルOFF					
 					}
 					sheet_refresh(sht_win, 0, 0, sht_win->bxsize, 21);
 					sheet_refresh(sht_cons, 0, 0, sht_cons->bxsize, 21);
@@ -196,7 +194,7 @@ void HariMain(void)
 						}
 						break;
 					case 256 + 0x1c: // enter
-						if(key_to != 0){ fifo32_put((FIFO32 *)task_cons->fifo ,10 +256); }
+						if(key_to != 0){ fifo32_put(&task_cons->fifo ,10 +256); }
 						break;
 				}
 
@@ -258,15 +256,6 @@ void HariMain(void)
 						}
 						break;
 				}
-				
-				char *s1;
-				if(cursor_c ==COL8_000000){
-					 s1="B";
-				} else if(cursor_c == COL8_FFFFFF){
-					s1 ="W";
-				}
-				// refreshが必要
-				putfonts8_asc_sht(sht_back,0,100,COL8_FFFFFF, COL8_008484, s1, 2);
 		}
 	}
 }
