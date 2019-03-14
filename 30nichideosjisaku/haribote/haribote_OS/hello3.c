@@ -1,4 +1,5 @@
 void api_putchar(int c);
+void api_end(void);
 
 void HariMain(){
     api_putchar('h');
@@ -6,5 +7,5 @@ void HariMain(){
     api_putchar('l');
     api_putchar('l');
     api_putchar('o');
-    return;
+    api_end();
 }

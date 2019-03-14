@@ -118,12 +118,12 @@ clean :
 	-$(DEL) *.lst
 	-$(DEL) *.gas
 	-$(DEL) *.obj
+	-$(DEL) *.map
+	-$(DEL) *.bim
+	-$(DEL) *.hrb
 	-$(DEL) bootpack.nas
 	-$(DEL) graphic.nas
 	-$(DEL) dsctbl.nas
-	-$(DEL) bootpack.map
-	-$(DEL) bootpack.bim
-	-$(DEL) bootpack.hrb
 	-$(DEL) haribote.sys
 	-$(DEL) haribote.img
 	
