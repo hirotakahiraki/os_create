@@ -11,18 +11,19 @@
 		GLOBAL	_io_out8, _io_out16, _io_out32
 		GLOBAL	_io_load_eflags, _io_store_eflags
 		GLOBAL	_load_gdtr, _load_idtr
-		GLOBAL	_asm_inthandler21, _asm_inthandler27, _asm_inthandler2c, _asm_inthandler20
-		EXTERN	_inthandler21, _inthandler27, _inthandler2c, _inthandler20
+		GLOBAL	_asm_inthandler21, _asm_inthandler27,  _asm_inthandler20
+		GLOBAL  _asm_inthandler2c, _asm_inthandler0d
 		GLOBAL	_load_cr0, _store_cr0
 		GLOBAL	_memtest_sub
 		GLOBAL	_load_tr
-		GLOBAL	_farjmp
+		GLOBAL	_farjmp, _farcall
 		GLOBAL	_asm_cons_putchar
-		EXTERN	_cons_putchar
-		GLOBAL	_farcall
 		GLOBAL	_asm_hrb_api
-		EXTERN 	_hrb_api
 		GLOBAL	_start_app
+		EXTERN	_inthandler21, _inthandler27, _inthandler20
+		EXTERN	 _inthandler2c, _inthandler0d
+		EXTERN	_cons_putchar
+		EXTERN 	_hrb_api
 
 [SECTION .text]
 
@@ -413,3 +414,69 @@ _asm_hrb_api:
 		POP		ES
 		POP		DS
 		IRETD	; この命令が自動でSTIしてくれる
+
+###########################
+###########################
+###########################
+_asm_inthandler0d:
+		STI		
+		PUSH	ES
+		PUSH	DS
+		PUSHAD
+		MOV		AX,SS
+		CMP		AX,1*8
+		JNE		.from_app
+
+	; OSが動いている間に割り込まれたのでほぼ今まで通り
+		MOV		EAX, ESP
+		PUSH	SS		; 割り込まれたときのSSを保持
+		PUSH	EAX		; 割り込まれたときのEAXを保持
+		MOV		AX,SS
+		MOV		DS,AX
+		MOV		ES,AX
+		CALL	_inthandler0d
+		ADD		ESP,8
+		POPAD
+		POP		DS
+		POP		ES
+		ADD		ESP,4	; INT 0d ではこれが必要
+		IRETD
+.from_app:
+	; アプリが動いている時に割り込まれた
+		CLI
+		MOV		EAX,1*8
+		MOV		DS,AX
+		MOV		ECX,[0xfe4]
+		ADD		ECX,-8
+		MOV		[ECX+4],SS
+		MOV		[ECX],ESP
+		MOV		SS,AX
+		MOV		ES,AX
+		MOV		ESP,ECX
+		STI
+		CALL	_inthandler0d
+		CLI
+		CMP		EAX,0
+		JNE		.kill
+		POP		ECX
+		POP		EAX
+		MOV		SS,AX		; SSをアプリ用に戻す
+		MOV		ESP,ECX		; ESPもアプリ用に戻す
+		POPAD
+		POP		DS
+		POP		ES
+		ADD		ESP,4		; INT 0x0dではこれが必要
+		IRETD
+.kill:
+	; アプリを終了させることにした
+		MOV		EAX,1*8 	; OS用のDS/SS
+		MOV		ES,AX
+		MOV		SS,AX
+		MOV		DS,AX
+		MOV		FS,AX
+		MOV		GS,AX
+		MOV		ESP,[0xfe4]	; start_appのときのESPに無理やり戻す
+		STI					; 切り替え完了なので割り込み可能に戻す
+		POPAD				; 保存しておいたレジスタを回復
+		RET
+
