@@ -270,6 +270,7 @@ typedef struct
 	unsigned int size;
 }FILEINFO;
 
+/*
 static char keytable0[0x80]={
 	 0,   0,  '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0, 0,  //16
 	'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '@', '[',  0 ,  0 , //14
@@ -294,7 +295,7 @@ static char keytable1[0x80] = {
 	 0 ,  0 ,  0 ,  0 ,  0 , '_', 0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , 
 	 0 ,  0 , '|', 0 ,  0 
 };
-
+*/
 /* mtask.c */
 extern TIMER *task_timer;
 // TASK のstructはfifoで利用するためfifoの上にある。

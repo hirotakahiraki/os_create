@@ -79,7 +79,7 @@ hello.hrb : hello.nas Makefile
 haribote.sys : asmhead.bin bootpack.hrb a.hrb Makefile
 	cat asmhead.bin bootpack.hrb a.hrb > haribote.sys
 
-haribote.img : ipl10.bin haribote.sys  Makefile \
+haribote.img : ipl10.bin haribote.sys Makefile \
 			hello.hrb hello2.hrb hello3.hrb a.hrb crack1.hrb crack2.hrb
 	$(EDIMG)   imgin:../../z_tools/fdimg0at.tek \
 		wbinimg src:ipl10.bin len:512 from:0 to:0 \
@@ -122,7 +122,6 @@ clean :
 	-$(DEL) *.bim
 	-$(DEL) *.hrb
 	-$(DEL) bootpack.nas
-	-$(DEL) graphic.nas
 	-$(DEL) dsctbl.nas
 	-$(DEL) haribote.sys
 	-$(DEL) haribote.img

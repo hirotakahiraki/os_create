@@ -7,11 +7,11 @@ BOOTINFO *binfo= (BOOTINFO *) ADR_BOOTINFO;
 TSS32 tss_a, tss_b;
 void HariMain(void)
 {
-	int fifobuf[128], keycmd_buf[32];	
-	char s[40], keybuf[32], mousebuf[128], timerbuf[8];
-	int mx, my, i, count10, cursor_x = 8, cursor_c = -1, task_b_esp;
-	int key_to = 0, key_shift = 0, key_leds = (binfo->leds >> 4) & 7, key_caps = 0;
-	unsigned int memtotal, count =0;
+	int fifobuf[128];
+	char s[40];
+	int mx, my, i, cursor_x = 8, cursor_c = -1;
+	int key_to = 0, key_shift = 0, key_caps = 0;
+	unsigned int memtotal;
 	MOUSE_DEC mdec;
 	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
 	SHTCTL *shtctl;
@@ -19,6 +19,8 @@ void HariMain(void)
 	TIMER *timer;
 	unsigned char *buf_back, buf_mouse[256], *buf_win, *buf_cons;
 	TASK *task_a, *task_cons;
+	static char keytable0[0x80] = { 0,   0,  '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0, 0, 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '@', '[',  0 ,  0 , 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', ':',  0,   0 , ']', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/',  0 , '*',  0 , ' ',  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , 0, 0, '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.', 0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , 0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , 0 ,  0 ,  0 ,  0 ,  0 , 0x5c, 0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , 0 ,  0 , 0x5c, 0 ,  0 };
+	static char keytable1[0x80] = { 0 ,  0 , '!', 0x22,'#', '$', '%', '&', 0x27,'(', ')',  0 , '=', '~', 0 ,  0 , 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '`', '{',  0 ,  0 , 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', '+', '*',  0 ,  0 ,  '}','Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?', '_','*',  0 , ' ',  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , 0, 0, '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.', 0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , 0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , 0 ,  0 ,  0 ,  0 ,  0 , '_', 0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , 0 ,  0 , '|', 0 ,  0 };
 	sht_debug = sht_back;
 	init_gdtidt();
 	init_pic();

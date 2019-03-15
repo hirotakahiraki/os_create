@@ -1,4 +1,5 @@
 #include "bootpack.h"
+#include <stdio.h>
 FIFO32 *mousefifo;
 int mousedata0;
 

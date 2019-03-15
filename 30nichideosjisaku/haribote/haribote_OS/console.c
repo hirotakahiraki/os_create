@@ -168,7 +168,6 @@ void cmd_cat(CONSOLE *cons, int *fat, char *cmdline){
 	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
 	FILEINFO *finfo = file_search(cmdline + 4, (FILEINFO *)(ADR_DISKIMG + 0x002600),224);
 	char *p;
-	int i;
 	if(finfo != 0){
 		// ファイルが見つかった
 		p = (char *)memman_alloc_4k(memman, finfo->size);
@@ -332,7 +331,7 @@ int hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int e
 	} else if(edx == 3){
 		cons_putstr1(cons, (char *)ebx + cs_base, ecx);
 	} else if(edx == 4){
-		return &(task->tss.esp0);
+		return (int)&(task->tss.esp0);
 	}
 	return 0;
 }
@@ -341,5 +340,5 @@ int inthandler0d(int *esp){
 	CONSOLE *cons = (CONSOLE *) *((int *)0x0fec);
 	TASK *task = task_now();
 	cons_putstr0(cons, "\nINT 0D : \n General Protected Exception.\n");
-	return &(task->tss.esp0); // 異常終了
+	return (int)&(task->tss.esp0); // 異常終了
 }
