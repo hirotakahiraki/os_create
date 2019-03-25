@@ -340,3 +340,4 @@ void cons_putstr1(CONSOLE *cons, char *s, int l);
 int hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
 FILEINFO *file_search(char *name, FILEINFO *finfo, int max);
 int inthandler0d(int *esp);
+void hrb_api_linewin(SHEET *sht, int x0, int y0, int x1, int y1, int col);
