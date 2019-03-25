@@ -33,6 +33,7 @@ SHEET *sheet_alloc(SHTCTL *ctl){
             sht = &ctl->sheets0[i];
             sht->flags = SHEET_USE; /* 使用中 */
             sht->height = -1; /* 非表示中 */ 
+            sht->task =  0; // 自動で閉じる機能を使わない
             return sht;
         }
     }

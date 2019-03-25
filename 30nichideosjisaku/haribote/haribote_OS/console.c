@@ -3,7 +3,6 @@
 #include <string.h>
 
 void console_task(SHEET *sheet, unsigned int memtotal){
-	TIMER * timer;
 	TASK *task = task_now();
 	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
 	int *fat = (int *)memman_alloc_4k(memman, 4*2880); 
@@ -17,9 +16,9 @@ void console_task(SHEET *sheet, unsigned int memtotal){
 	*((int*)0x0fec) = (int) &cons;
 	
 	fifo32_init(&task->fifo, 128, fifobuf, task);
-	timer = timer_alloc();
-	timer_init(timer, &task->fifo, 1);
-	timer_settime(timer, 50);
+	cons.timer = timer_alloc();
+	timer_init(cons.timer, &task->fifo, 1);
+	timer_settime(cons.timer, 50);
 	file_readfat(fat, (unsigned char *) (ADR_DISKIMG + 0x000200));
 			
 	// プロンプト表示
@@ -35,17 +34,17 @@ void console_task(SHEET *sheet, unsigned int memtotal){
 			// カーソル用タイマ
 			if(i <= 1){
 				if(i != 0){
-					timer_init(timer, &task->fifo, 0); //次は0
+					timer_init(cons.timer, &task->fifo, 0); //次は0
 					if(cons.cur_c >= 0){
 						cons.cur_c = COL8_FFFFFF;
 					}
 				} else {
-					timer_init(timer, &task->fifo, 1); // 次は1
+					timer_init(cons.timer, &task->fifo, 1); // 次は1
 					if(cons.cur_c >= 0){
 						cons.cur_c = COL8_000000;
 					}
 				}
-				timer_settime(timer, 50);
+				timer_settime(cons.timer, 50);
 			}
 			switch (i)
 			{
@@ -251,6 +250,8 @@ void cons_putchar(CONSOLE *cons, int chr, char move){
 }
 
 int cmd_app(CONSOLE *cons,  int *fat, char *cmdline){
+	SHTCTL *shtctl;
+	SHEET *sht;
 	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
 	FILEINFO *finfo;
 	SEGMENT_DISCRIPTOR *gdt = (SEGMENT_DISCRIPTOR *) ADR_GDT;
@@ -298,6 +299,14 @@ int cmd_app(CONSOLE *cons,  int *fat, char *cmdline){
 				q[esp + i] = p[dathrb + i];
  			}
 			start_app(0x1b, 1003*8, esp, 1004*8, &(task->tss.esp0));
+			shtctl =  (SHTCTL *) *((int *) 0x0fe4);
+			for(i=0; i<MAX_SHEETS; i++){
+				sht = &(shtctl->sheets0[i]);
+				if(sht->flags != 0 && sht->task == task){
+					// アプリが開きっぱなしにしたタスクを閉じる
+					sheet_free(sht);
+				}
+			}
 			memman_free_4k(memman, (int)q, segsize);				
 		} else{
 			cons_putstr0(cons, ".hrb file format error.\n");
@@ -333,6 +342,7 @@ int hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int e
 	SHTCTL *shtctl =  (SHTCTL *) *((int *) 0x0fe4);
 	SHEET *sht;
 	int *reg = &eax +1;
+	int i;
 
 	if(edx ==1){
 		cons_putchar(cons, eax&0xff, 1);
@@ -344,6 +354,7 @@ int hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int e
 		return (int)&(task->tss.esp0);
 	} else if(edx == 5){
 		sht = sheet_alloc(shtctl);
+		sht->task = task;
 		sheet_setbuf(sht, (char *)ebx + ds_base, esi, edi, eax);
 		make_window8((char *)ebx + ds_base, esi, edi, (char *)ecx + ds_base, 0);
 		sheet_slide(sht, 100, 50);
@@ -385,6 +396,38 @@ int hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int e
 		hrb_api_linewin(sht, eax, ecx, esi, edi, ebp);
 		if((ebx & 1)== 0){
 			sheet_refresh(sht, eax, ecx, esi +1, edi+1);
+		}
+	} else if(edx ==14){
+		sheet_free((SHEET *)ebx);
+	} else if(edx ==15){
+		for(;;){
+			io_cli();
+			if(fifo32_status(&task->fifo) == 0){
+				if(eax != 0){
+					task_sleep(task);
+				} else {
+					io_sti();
+					reg[7] = -1;
+					return 0;
+				}
+			}
+			i = fifo32_get(&task->fifo);
+			io_sti();
+			if(i <= 1){
+				// アプリ実行中はカーソルがでないのでいつも次は表示用の1を注文しておく
+				timer_init(cons->timer, &task->fifo, 1);
+				timer_settime(cons->timer, 50);
+			}
+			if(i ==2){
+				cons->cur_c = COL8_FFFFFF;
+			}
+			if(i ==3){
+				cons->cur_c = -1;
+			}
+			if(256 <= i && i <= 511){
+				reg[7] = i -256;
+				return 0;
+			}
 		}
 	}
 	return 0;

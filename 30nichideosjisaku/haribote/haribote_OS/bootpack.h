@@ -207,6 +207,7 @@ typedef struct {
 	unsigned char *buf;
 	int bxsize, bysize, vx0, vy0, col_inv, height, flags;
 	struct SHTCTL *ctl;
+	TASK *task;
 }SHEET;
 
 typedef struct {
@@ -323,6 +324,7 @@ void task_idle(void);
 typedef struct {
 	SHEET *sht;
 	int cur_x, cur_y, cur_c;
+	TIMER *timer;
 }CONSOLE;
 void console_task(SHEET *sheet, unsigned int memtotal);
 void cons_newline(CONSOLE *cons);
