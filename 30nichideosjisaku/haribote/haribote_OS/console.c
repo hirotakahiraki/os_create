@@ -350,13 +350,17 @@ int hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int e
 		sheet_updown(sht, 3);
 		reg[7] = (int) sht;
 	} else if(edx == 6){
-		sht = (SHEET *) ebx;
+		sht = (SHEET *) (ebx&0xfffffffe);
 		putfonts8_asc(sht->buf, sht->bxsize, esi, edi, eax, (char *)ebp+ds_base);
-		sheet_refresh(sht,esi,edi, esi + ecx*8, edi+16);
+		if((ebx&1) ==0){
+			sheet_refresh(sht,esi,edi, esi + ecx*8, edi+16);
+		}
 	} else if(edx == 7){
-		sht = (SHEET*) ebx;
+		sht = (SHEET*) (ebx&0xfffffffe);
 		boxfill8(sht->buf, sht->bxsize, ebp, eax, ecx, esi, edi);
-		sheet_refresh(sht, eax, ecx, esi+1, edi+1);
+		if((ebx & 1) ==0){
+			sheet_refresh(sht, eax, ecx, esi+1, edi+1);
+		}
 	} else if(edx == 8){
 		memman_init((MEMMAN *)(ebx + ds_base));
 		ecx &= 0xfffffff0; // 16バイト単位
@@ -368,9 +372,14 @@ int hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int e
 		ecx = (ecx+0x0f) & 0xfffffff0; // 16バイトに切り上げ
 		memman_free((MEMMAN *) (ebx+ds_base), eax, ecx);
 	} else if(edx ==11){
-		sht = (SHEET *) ebx;
+		sht = (SHEET *)(ebx & 0xffffffe);
 		sht->buf[sht->bxsize*edi +esi] = eax;
-		sheet_refresh(sht, esi, edi, esi+1, edi+1);
+		if((ebx & 1) == 0){
+			sheet_refresh(sht, esi, edi, esi+1, edi+1);
+		}
+	} else if(edx ==12){
+		sht = (SHEET *) ebx;
+		sheet_refresh(sht, eax, ecx, esi, edi);
 	}
 	return 0;
 }

@@ -67,6 +67,12 @@ stars.bim: stars.obj Makefile
 stars.hrb: stars.bim Makefile
 	$(BIM2HRB) stars.bim stars.hrb 0
 
+stars2.bim: stars2.obj Makefile
+	$(OBJ2BIM) @$(RULEFILE) out:stars2.bim map:stars2.map stars2.obj a_nask.obj
+
+stars2.hrb: stars2.bim Makefile
+	$(BIM2HRB) stars2.bim stars2.hrb 0
+
 winhelo.bim: winhelo.obj Makefile
 	$(OBJ2BIM) @$(RULEFILE) out:winhelo.bim map:winhelo.map winhelo.obj a_nask.obj
 
@@ -133,7 +139,7 @@ haribote.sys : asmhead.bin bootpack.hrb a.hrb Makefile
 haribote.img : ipl10.bin haribote.sys Makefile \
 			hello.hrb hello2.hrb hello3.hrb hello4.hrb hello5.hrb a.hrb \
 			bug1.hrb bug2.hrb bug3.hrb winhelo.hrb winhelo2.hrb winhelo3.hrb \
-			star1.hrb stars.hrb
+			star1.hrb stars.hrb stars2.hrb
 
 	$(EDIMG)   imgin:../../z_tools/fdimg0at.tek \
 		wbinimg src:ipl10.bin len:512 from:0 to:0 \
@@ -154,6 +160,7 @@ haribote.img : ipl10.bin haribote.sys Makefile \
 		copy from:winhelo3.hrb to:@: \
 		copy from:star1.hrb to:@: \
 		copy from:stars.hrb to:@: \
+		copy from:stars2.hrb to:@: \
 		imgout:haribote.img
 
 %.gas : %.c Makefile
