@@ -367,6 +367,10 @@ int hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int e
 	} else if(edx ==10){
 		ecx = (ecx+0x0f) & 0xfffffff0; // 16バイトに切り上げ
 		memman_free((MEMMAN *) (ebx+ds_base), eax, ecx);
+	} else if(edx ==11){
+		sht = (SHEET *) ebx;
+		sht->buf[sht->bxsize*edi +esi] = eax;
+		sheet_refresh(sht, esi, edi, esi+1, edi+1);
 	}
 	return 0;
 }
