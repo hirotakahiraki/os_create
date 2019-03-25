@@ -67,6 +67,12 @@ winhelo2.bim: winhelo2.obj Makefile
 winhelo2.hrb: winhelo2.bim Makefile
 	$(BIM2HRB) winhelo2.bim winhelo2.hrb 0
 
+winhelo3.bim: winhelo3.obj Makefile
+	$(OBJ2BIM) @$(RULEFILE) out:winhelo3.bim map:winhelo3.map winhelo3.obj a_nask.obj
+
+winhelo3.hrb: winhelo3.bim Makefile
+	$(BIM2HRB) winhelo3.bim winhelo3.hrb 0
+
 bug1.bim: bug1.obj Makefile
 	$(OBJ2BIM) @$(RULEFILE) out:bug1.bim map:bug1.map bug1.obj a_nask.obj
 
@@ -114,7 +120,7 @@ haribote.sys : asmhead.bin bootpack.hrb a.hrb Makefile
 
 haribote.img : ipl10.bin haribote.sys Makefile \
 			hello.hrb hello2.hrb hello3.hrb hello4.hrb hello5.hrb a.hrb \
-			bug1.hrb bug2.hrb bug3.hrb winhelo.hrb winhelo2.hrb
+			bug1.hrb bug2.hrb bug3.hrb winhelo.hrb winhelo2.hrb winhelo3.hrb
 
 	$(EDIMG)   imgin:../../z_tools/fdimg0at.tek \
 		wbinimg src:ipl10.bin len:512 from:0 to:0 \
@@ -132,6 +138,7 @@ haribote.img : ipl10.bin haribote.sys Makefile \
 		copy from:a.hrb to:@: \
 		copy from:winhelo.hrb to:@: \
 		copy from:winhelo2.hrb to:@: \
+		copy from:winhelo3.hrb to:@: \
 		imgout:haribote.img
 
 %.gas : %.c Makefile

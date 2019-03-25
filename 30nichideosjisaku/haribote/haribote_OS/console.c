@@ -357,6 +357,16 @@ int hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int e
 		sht = (SHEET*) ebx;
 		boxfill8(sht->buf, sht->bxsize, ebp, eax, ecx, esi, edi);
 		sheet_refresh(sht, eax, ecx, esi+1, edi+1);
+	} else if(edx == 8){
+		memman_init((MEMMAN *)(ebx + ds_base));
+		ecx &= 0xfffffff0; // 16バイト単位
+		memman_free((MEMMAN *) (ebx + ds_base), eax, ecx);
+	} else if(edx == 9){
+		ecx = (ecx + 0x0f) &0xfffffff0;  // 16バイト単位に切り上げ
+		reg[7] = memman_alloc((MEMMAN *)(ebx + ds_base), ecx);
+	} else if(edx ==10){
+		ecx = (ecx+0x0f) & 0xfffffff0; // 16バイトに切り上げ
+		memman_free((MEMMAN *) (ebx+ds_base), eax, ecx);
 	}
 	return 0;
 }
