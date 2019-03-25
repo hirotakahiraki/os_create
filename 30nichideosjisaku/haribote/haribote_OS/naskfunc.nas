@@ -11,15 +11,16 @@
 		GLOBAL	_io_out8, _io_out16, _io_out32
 		GLOBAL	_io_load_eflags, _io_store_eflags
 		GLOBAL	_load_gdtr, _load_idtr
-		GLOBAL	_asm_inthandler21, _asm_inthandler27,  _asm_inthandler20
-		GLOBAL  _asm_inthandler2c, _asm_inthandler0d
+		GLOBAL	_asm_inthandler21, _asm_inthandler27,  
+		GLOBAL	_asm_inthandler20, _asm_inthandler2c, 
+		GLOBAL	_asm_inthandler0d, _asm_inthandler0c
 		GLOBAL	_load_cr0, _store_cr0
 		GLOBAL	_memtest_sub
 		GLOBAL	_load_tr
 		GLOBAL	_farjmp, _farcall
 		GLOBAL	_asm_cons_putchar
 		GLOBAL	_asm_hrb_api
-		GLOBAL	_start_app, end_app
+		GLOBAL	_start_app, _asm_end_app
 		EXTERN	_inthandler21, _inthandler27, _inthandler20
 		EXTERN	 _inthandler2c, _inthandler0d
 		EXTERN	_cons_putchar
@@ -265,15 +266,16 @@ _asm_hrb_api:
 		MOV		ES,AX
 		CALL	_hrb_api
 		CMP		EAX,0	; EAXが0でなければアプリ強制終了
-		JNE		end_app
+		JNE		_asm_end_app
 		ADD		ESP,32
 		POPAD
 		POP		ES
 		POP		DS
 		IRETD
-end_app:
+_asm_end_app:
 	; EAXはtss.esp0の番地
 		MOV		ESP,[EAX]
+		MOV		DWORD [EAX+4],0
 		POPAD
 		RET		; cmd_appに戻る
 
@@ -289,7 +291,27 @@ _asm_inthandler0d:
 		MOV		ES,AX
 		CALL	_inthandler0d
 		CMP		EAX,0
-		JNE		end_app
+		JNE		_asm_end_app
+		POP		EAX
+		POPAD
+		POP		DS
+		POP		ES
+		ADD		ESP,4		; INT 0x0dではこれが必要
+		IRETD
+
+_asm_inthandler0c:
+		STI		
+		PUSH	ES
+		PUSH	DS
+		PUSHAD
+		MOV		EAX, ESP
+		PUSH	EAX		; 割り込まれたときのEAXを保持
+		MOV		AX,SS
+		MOV		DS,AX
+		MOV		ES,AX
+		CALL	_inthandler0c
+		CMP		EAX,0
+		JNE		_asm_end_app
 		POP		EAX
 		POPAD
 		POP		DS

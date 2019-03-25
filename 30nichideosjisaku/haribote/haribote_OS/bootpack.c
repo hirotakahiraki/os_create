@@ -17,6 +17,7 @@ void HariMain(void)
 	SHTCTL *shtctl;
 	SHEET *sht_mouse, *sht_win, *sht_cons;
 	TIMER *timer;
+	CONSOLE *cons;
 	unsigned char *buf_back, buf_mouse[256], *buf_win, *buf_cons;
 	TASK *task_a, *task_cons;
 	static char keytable0[0x80] = { 0,   0,  '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0, 0, 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '@', '[',  0 ,  0 , 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', ':',  0,   0 , ']', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/',  0 , '*',  0 , ' ',  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , 0, 0, '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.', 0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , 0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , 0 ,  0 ,  0 ,  0 ,  0 , 0x5c, 0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , 0 ,  0 , 0x5c, 0 ,  0 };
@@ -43,6 +44,7 @@ void HariMain(void)
 	task_a = task_init(memman);
 	fifo.task = task_a;
 	task_run(task_a, 1, 2);
+	*((int *) 0x0fe4) = (int) shtctl;
 
 	// sht_back
 	sht_back = sheet_alloc(shtctl);
@@ -172,7 +174,15 @@ void HariMain(void)
 					sheet_refresh(sht_cons, 0, 0, sht_cons->bxsize, 21);
 				}
 
-				
+				if(256 <= i && i<= 511 && key_shift != 0 && task_cons->tss.ss0 != 0){ // shift + F1
+					cons = (CONSOLE *) *((int *) 0x0fec);
+					cons_putstr0(cons, "\nBreak(key): \n");
+					io_cli();
+					task_cons->tss.eax = (int) &(task_cons->tss.esp0);
+					task_cons->tss.eip = (int) & asm_end_app;
+					io_sti();
+				}
+
 				switch (i)
 				{
 					// shift key

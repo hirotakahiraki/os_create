@@ -256,7 +256,7 @@ int cmd_app(CONSOLE *cons,  int *fat, char *cmdline){
 	SEGMENT_DISCRIPTOR *gdt = (SEGMENT_DISCRIPTOR *) ADR_GDT;
 	char name[18], *p, *q;
 	TASK *task = task_now();
-	int i;
+	int i, segsize, datasize, esp, dathrb;
 
 	// コマンドラインからファイル名を生成
 	for(i=0; i<13; i++){
@@ -282,22 +282,27 @@ int cmd_app(CONSOLE *cons,  int *fat, char *cmdline){
 	if(finfo != 0){
 		// ファイルが見つかった場合
 		p = (char *)memman_alloc_4k(memman, finfo->size);
-		q = (char *)memman_alloc_4k(memman, 64*1024);
-		*((int *)0xfe8) = (int) p;
+		//q = (char *)memman_alloc_4k(memman, 64*1024);
+		//*((int *)0xfe8) = (int) p;
 		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *) (ADR_DISKIMG + 0x003e00));
-		set_segmdesc(gdt +1003, finfo->size - 1, (int)p, AR_CODE32_ER + 0x60);
-		set_segmdesc(gdt +1004, 64*1024 - 1, (int)q, AR_DATA32_RW + 0x60);
-		if(finfo->size >= 8 && strncmp(p+4, "Hari", 4) == 0){
-			p[0] = 0xe8;
-			p[1] = 0x16;
-			p[2] = 0x00;
-			p[3] = 0x00;
-			p[4] = 0x00;
-			p[5] = 0xcb;
+		if(finfo->size >= 36 && strncmp(p+4, "Hari", 4) == 0 && *p == 0x00){
+			segsize  = *((int *) (p + 0x0000));
+			esp      = *((int *) (p + 0x000c));
+			datasize = *((int *) (p + 0x0010));
+			dathrb   = *((int *) (p + 0x0014));
+			q = (char *)memman_alloc_4k(memman, segsize);
+			*((int *)0xfe8) = (int) q;
+			set_segmdesc(gdt +1003, finfo->size - 1, (int)p, AR_CODE32_ER + 0x60);
+			set_segmdesc(gdt +1004, segsize - 1, (int)q, AR_DATA32_RW + 0x60);
+			for(i =0; i<datasize; i++){
+				q[esp + i] = p[dathrb + i];
+ 			}
+			start_app(0x1b, 1003*8, esp, 1004*8, &(task->tss.esp0));
+			memman_free_4k(memman, (int)q, segsize);				
+		} else{
+			cons_putstr0(cons, ".hrb file format error.\n");
 		}
-		start_app(0, 1003*8, 64*1024, 1004*8, &(task->tss.esp0));
 		memman_free_4k(memman, (int)p, finfo->size);
-		memman_free_4k(memman, (int)q, 64*1024);
 		cons_newline(cons);
 		return 1;
 	}
@@ -321,17 +326,30 @@ void cons_putstr1(CONSOLE *cons, char *s, int l){
 }
 
 int hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax){
-	int cs_base = *((int *) 0xfe8);
+	char s[12];
+	int ds_base = *((int *) 0xfe8);
 	TASK *task = task_now();
 	CONSOLE *cons = (CONSOLE *) *((int *) 0x0fec);
+	SHTCTL *shtctl =  (SHTCTL *) *((int *) 0x0fe4);
+	SHEET *sht;
+	int *reg = &eax +1;
+
 	if(edx ==1){
 		cons_putchar(cons, eax&0xff, 1);
 	} else if(edx == 2){
-		cons_putstr0(cons, (char *)ebx + cs_base);
+		cons_putstr0(cons, (char *)ebx + ds_base);
 	} else if(edx == 3){
-		cons_putstr1(cons, (char *)ebx + cs_base, ecx);
+		cons_putstr1(cons, (char *)ebx + ds_base, ecx);
 	} else if(edx == 4){
 		return (int)&(task->tss.esp0);
+	} else if(edx == 5){
+		sht = sheet_alloc(shtctl);
+		sheet_setbuf(sht, (char *)ebx + ds_base, esi, edi, eax);
+		make_window8((char *)ebx + ds_base, esi, edi, (char *)ecx + ds_base, 0);
+		sheet_slide(sht, 100, 50);
+		sheet_updown(sht, 3);
+		reg[7] = (int) sht;
+
 	}
 	return 0;
 }
@@ -339,6 +357,19 @@ int hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int e
 int inthandler0d(int *esp){
 	CONSOLE *cons = (CONSOLE *) *((int *)0x0fec);
 	TASK *task = task_now();
+	char s[30];
 	cons_putstr0(cons, "\nINT 0D : \n General Protected Exception.\n");
+	sprintf(s, "EIP = %08X\n", esp[11]);
+	cons_putstr0(cons, s);
 	return (int)&(task->tss.esp0); // 異常終了
+}
+
+int inthandler0c(int *esp){
+	CONSOLE *cons = (CONSOLE *) *((int *)0x0fec);
+	TASK *task = task_now();
+	char s[30];
+	cons_putstr0(cons, "\nINT 0D : \n Stack Exception.\n");
+	sprintf(s, "ELP = %08X\n", esp[11]);
+	cons_putstr0(cons, s);
+	return (int)&(task->tss.esp0); // 異常終了させる
 }

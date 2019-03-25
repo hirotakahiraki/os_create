@@ -39,6 +39,7 @@ void io_store_eflags(int eflags);
 void write_mem8(int addr, int data);
 void load_gdtr(int limit, int addr);
 void load_idtr(int limit, int addr);
+void asm_inthandler0c();
 void asm_inthandler0d();
 void asm_inthandler20(void);
 void asm_inthandler21(void);
@@ -54,6 +55,7 @@ void farcall(int eip, int cs);
 void asm_cons_putchar(void);
 void asm_hrb_api(void);
 void start_app(int eip, int cs, int esp, int ds, int *tss_esp0);
+void asm_end_app(void);
 
 /* graphic.c */
 void init_palette(void);
