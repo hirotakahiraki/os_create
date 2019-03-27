@@ -11,11 +11,12 @@ void HariMain(void)
 	char s[40];
 	int mx, my, i, cursor_x = 8, cursor_c = -1;
 	int key_to = 0, key_shift = 0, key_caps = 0;
+	int j, x, y, mmx = -1, mmy = -1;
 	unsigned int memtotal;
 	MOUSE_DEC mdec;
 	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
 	SHTCTL *shtctl;
-	SHEET *sht_mouse, *sht_win, *sht_cons;
+	SHEET *sht_mouse, *sht_win, *sht_cons, *sht = 0;
 	TIMER *timer;
 	CONSOLE *cons;
 	unsigned char *buf_back, buf_mouse[256], *buf_win, *buf_cons;
@@ -208,6 +209,11 @@ void HariMain(void)
 					case 256 + 0x1c: // enter
 						if(key_to != 0){ fifo32_put(&task_cons->fifo ,10 +256); }
 						break;
+					case 256 + 0xb8: // optionキーで画面の切り替え
+						if(shtctl->top > 2){
+							sheet_updown(shtctl->sheets[1], shtctl->top -1);
+						}
+						break;
 				}
 
 				// カーソルの再表示
@@ -239,6 +245,49 @@ void HariMain(void)
 					if((mdec.btn & 0x01) !=0){
 						// 左ボタンを推したら sht_winを動かす
 						sheet_slide(sht_win, mx - 80, my - 8);
+					}
+					if((mdec.btn & 0x01)!=0){
+						// 左ボタンを押している
+						if(mmx < 0){
+							// 通常モードの場合
+							// 上の下敷きから順番にマウスが指している下敷きを探す
+							for(j = shtctl->top -1 ; j>0; j--){
+								sht = shtctl->sheets[j];
+								x = mx - sht->vx0;
+								y = my - sht->vy0;
+								if(0 <= x && x< sht->bxsize && 0<=y && y < sht->bysize){
+									if(sht->buf[y*sht->bxsize + x] != sht->col_inv){
+										sheet_updown(sht, shtctl->top-1);
+										if(3 <= x && x < sht->bxsize-3 && 3 <= y && y < 21){
+											mmx = mx; // ウィンドウ移動モード
+											mmy = my;
+										}
+										if(sht->bxsize - 21 <= x && x< sht->bxsize - 5 && 5 <= y && y < 19){
+											if(sht->task != 0){
+												// アプリが作ったウィンドウかどうか
+												cons = (CONSOLE *) *((int *) 0x0fec);
+												cons_putstr0(cons, "\nBreak(mouse): \n");
+												io_cli();
+												task_cons->tss.eax = (int) &(task_cons->tss.esp0);
+												task_cons->tss.eip = (int) asm_end_app;
+												io_sti();
+											}
+										}
+										break;
+									}
+								} 
+							}	
+						} else {
+							// ウィンドウ移動モードのとき
+							x = mx - mmx;
+							y = my - mmy;
+							sheet_slide(sht, sht->vx0+x, sht->vy0+y);
+							mmx = mx;
+							mmy = my;
+						}						
+					} else {
+						// 左ボタンを押していない
+						mmx = -1;
 					}
 				}	
 			}
