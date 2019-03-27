@@ -265,6 +265,9 @@ void task_b_main(SHEET *sht);
 void make_wtitle8(unsigned char *buf, int xsize, char *title, char act);
 void file_readfat(int *fat, unsigned char *img);
 void file_loadfile(int clustno, int size, char *buf, int *fat, char *img);
+int keywin_on(SHEET *key_win, SHEET *sht_win, int cur_c);
+int keywin_off(SHEET *key_win, SHEET *sht_win, int cur_c, int cur_x);
+void change_wtitle8(SHEET * sht, char act);
 typedef struct 
 {
 	unsigned char name[8], ext[3], type;

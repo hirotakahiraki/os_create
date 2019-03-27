@@ -16,7 +16,7 @@ void HariMain(void)
 	MOUSE_DEC mdec;
 	MEMMAN *memman = (MEMMAN *) MEMMAN_ADDR;
 	SHTCTL *shtctl;
-	SHEET *sht_mouse, *sht_win, *sht_cons, *sht = 0;
+	SHEET *sht_mouse, *sht_win, *sht_cons, *sht = 0, *key_win;
 	TIMER *timer;
 	CONSOLE *cons;
 	unsigned char *buf_back, buf_mouse[256], *buf_win, *buf_cons;
@@ -101,6 +101,11 @@ void HariMain(void)
 	sheet_updown(sht_win, 2);
 	sheet_updown(sht_mouse, 3);
 
+	// windowの切り替え
+	key_win = sht_win;
+	sht_cons->task = task_cons;
+	sht_cons->flags |= 0x20;
+
 	for (;;) {
 		io_cli();
 		if(fifo32_status(&fifo) == 0){
@@ -110,6 +115,10 @@ void HariMain(void)
 		{	
 			i = fifo32_get(&fifo);
 			io_sti();
+			if(key_win->flags == 0){// 入力ウィンドウが閉じられた
+				key_win = shtctl->sheets[shtctl->top -1];
+				cursor_c = keywin_on(key_win, sht_win, cursor_c);
+			}
 			if(256 <= i && i <=511){
 				// キーボード
 				sprintf(s, "%02X", i-256);
@@ -130,7 +139,7 @@ void HariMain(void)
 					}
 				}
 				if(s[0] != 0){
-					if(key_to == 0){ //task Aへ
+					if(key_win == sht_win){ //task Aへ
 						if(cursor_x < 128){
 						// 一文字表示してカーソルを進める
 						s[1] = 0;
@@ -138,41 +147,32 @@ void HariMain(void)
 						cursor_x += 8;
 						} 
 					}else { // コンソールへ
-						fifo32_put(&task_cons->fifo, s[0]+256);
+						fifo32_put(&key_win->task->fifo, s[0]+256);
 					}
 				}
 
 				// delete key
 				if(i == 256 + 0x0e){
-					if(key_to == 0){ // task Aへ
+					if(key_win == sht_win){ // task Aへ
 						if(cursor_x > 8){
 							// カーソルをスペースで消してカーソルを一つ戻す
 							putfonts8_asc_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, " ", 1);
 							cursor_x -= 8;
 						}
 					} else {
-						fifo32_put(&task_cons->fifo, 8+256);
+						fifo32_put(&key_win->task->fifo, 8+256);
 					}
 				}
 
 				// tabボタン 
 				if(i == 256 + 0x0f){
-					if(key_to == 0){
-						key_to = 1;
-						make_wtitle8(buf_win, sht_win->bxsize, "task_a", 0);
-						make_wtitle8(buf_cons, sht_cons->bxsize, "console", 1);
-						cursor_c = -1; // カーソルを消す
-						boxfill8(sht_win->buf, sht_win->bxsize, COL8_FFFFFF, cursor_x, 28, cursor_x + 7, 43);
-						fifo32_put(&task_cons->fifo, 2);
-					} else {
-						key_to = 0;
-						make_wtitle8(buf_win, sht_win->bxsize, "task_a", 1);
-						make_wtitle8(buf_cons, sht_cons->bxsize, "console", 0);	
-						cursor_c = COL8_000000; // カーソルを出す
-						fifo32_put(&task_cons->fifo, 3); // コンソールのカーソルOFF					
+					cursor_c = keywin_off(key_win, sht_win, cursor_c, cursor_x);
+					j = key_win->height -1;
+					if( j ==0){
+						j = shtctl->top -1;
 					}
-					sheet_refresh(sht_win, 0, 0, sht_win->bxsize, 21);
-					sheet_refresh(sht_cons, 0, 0, sht_cons->bxsize, 21);
+					key_win = shtctl->sheets[j];
+					cursor_c = keywin_on(key_win, sht_win, cursor_c);
 				}
 
 				if(256 <= i && i<= 511 && key_shift != 0 && task_cons->tss.ss0 != 0){ // shift + F1
@@ -207,7 +207,7 @@ void HariMain(void)
 						}
 						break;
 					case 256 + 0x1c: // enter
-						if(key_to != 0){ fifo32_put(&task_cons->fifo ,10 +256); }
+						if(key_win != sht_win){ fifo32_put(&task_cons->fifo ,10 +256); }
 						break;
 					case 256 + 0xb8: // optionキーで画面の切り替え
 						if(shtctl->top > 2){
@@ -242,10 +242,6 @@ void HariMain(void)
 						my = binfo->scrny - 1;
 					}
 					sheet_slide(sht_mouse, mx, my);
-					if((mdec.btn & 0x01) !=0){
-						// 左ボタンを推したら sht_winを動かす
-						sheet_slide(sht_win, mx - 80, my - 8);
-					}
 					if((mdec.btn & 0x01)!=0){
 						// 左ボタンを押している
 						if(mmx < 0){
@@ -258,19 +254,25 @@ void HariMain(void)
 								if(0 <= x && x< sht->bxsize && 0<=y && y < sht->bysize){
 									if(sht->buf[y*sht->bxsize + x] != sht->col_inv){
 										sheet_updown(sht, shtctl->top-1);
+										if(sht != key_win){
+											cursor_c = keywin_off(key_win, sht_win, cursor_c, cursor_x);
+											key_win = sht;
+											cursor_c = keywin_on(key_win, sht_win, cursor_c);
+										}
 										if(3 <= x && x < sht->bxsize-3 && 3 <= y && y < 21){
 											mmx = mx; // ウィンドウ移動モード
 											mmy = my;
 										}
 										if(sht->bxsize - 21 <= x && x< sht->bxsize - 5 && 5 <= y && y < 19){
-											if(sht->task != 0){
-												// アプリが作ったウィンドウかどうか
-												cons = (CONSOLE *) *((int *) 0x0fec);
-												cons_putstr0(cons, "\nBreak(mouse): \n");
-												io_cli();
-												task_cons->tss.eax = (int) &(task_cons->tss.esp0);
-												task_cons->tss.eip = (int) asm_end_app;
-												io_sti();
+											if((sht->flags & 0x10) != 0){ 	// アプリが作ったウィンドウかどうか
+												if(sht->task != 0){
+													cons = (CONSOLE *) *((int *) 0x0fec);
+													cons_putstr0(cons, "\nBreak(mouse): \n");
+													io_cli();
+													task_cons->tss.eax = (int) &(task_cons->tss.esp0);
+													task_cons->tss.eip = (int) asm_end_app;
+													io_sti();
+												}
 											}
 										}
 										break;
@@ -319,4 +321,56 @@ void HariMain(void)
 				}
 		}
 	}
+}
+
+int keywin_on(SHEET *key_win, SHEET *sht_win, int cur_c){
+	change_wtitle8(key_win, 1);
+	if(key_win == sht_win){
+		cur_c = COL8_000000;
+	} else {
+		if((key_win->flags & 0x20) != 0){
+			fifo32_put(&key_win->task->fifo, 2); // コンソールのカーソルON
+		}
+	}
+	return cur_c;
+}
+int keywin_off(SHEET *key_win, SHEET *sht_win, int cur_c, int cur_x){
+	change_wtitle8(key_win, 0);
+	if(key_win == sht_win){
+		cur_c = -1;
+		boxfill8(sht_win->buf, sht_win->bxsize, COL8_FFFFFF, cur_x, 28, cur_x+7, 43);
+	} else {
+		if((key_win->flags &0x20) != 0){
+			fifo32_put(&key_win->task->fifo, 3); // コンソールのカーソルOFF
+		}
+	}
+	return cur_c;
+}
+void change_wtitle8(SHEET * sht, char act){
+	int x, y, xsize = sht->bxsize;
+	char c, tc_new, tbc_new, tc_old, tbc_old, *buf = sht->buf;
+	if(act != 0){
+		tc_new = COL8_FFFFFF;
+		tbc_new = COL8_000084;
+		tc_old = COL8_C6C6C6;
+		tbc_old = COL8_848484;
+	} else {
+		tc_new = COL8_C6C6C6;
+		tbc_new = COL8_848484;
+		tc_old = COL8_FFFFFF;
+		tbc_old = COL8_000084;
+	}
+	for(y = 3; y<= 20; y++){
+		for(x =3; x <= xsize -4; x++){
+			c = buf[y*xsize + x];
+			if(c == tc_old && x <= xsize -22){
+				c = tc_new;
+			} else if(c == tbc_old){
+				c = tbc_new;
+			}
+			buf[y*xsize + x] = c;
+		}	
+	}
+	sheet_refresh(sht, 3, 3, xsize, 21);
+	return;
 }
